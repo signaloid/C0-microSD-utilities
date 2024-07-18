@@ -23,10 +23,12 @@
 import argparse
 import sys
 import os
+import json
+import binascii
 
 from src.python.c0microsd.interface import C0microSDInterface
 
-APP_VERSION = "1.0"  # Application version
+APP_VERSION = "1.2"  # Application version
 MAX_FLASH_ATTEMPTS = 5  # Maximum flashing attempts
 
 
@@ -44,7 +46,28 @@ class C0microSDToolkit(C0microSDInterface):
     # 2.0 MiB offset for userspace
     USER_DATA_OFFSET = 0x200000
 
+    SERIAL_NUMBER_OFFSET = 0x22040
+    SERIAL_NUMBER_SIZE = 0x40
+
+    UUID_OFFSET = 0x22080
+    UUID_SIZE = 0x40
+
     BOOTLOADER_UNLOCK_WORD = b"UBLD"
+
+    def _strip_trailing_bytes(
+            self, byte_array: bytearray, byte: int
+            ) -> bytearray:
+        """
+        Strip the trailing bytes of a bytearray
+
+        :param byte_array (iterable of bytes): Array of bytes to strip.
+        :param byte (int): The byte to remove.
+        :return (bytearray): Stripped array of bytes
+        """
+        end = len(byte_array)
+        while end > 0 and byte_array[end - 1] == byte:
+            end -= 1
+        return byte_array[:end]
 
     def switch_boot_config(self) -> None:
         """
@@ -71,6 +94,12 @@ class C0microSDToolkit(C0microSDInterface):
             "Device configured successfully. "
             "Power cycle the device to boot in new mode."
         )
+
+        if (self.configuration == "bootloader"):
+            print(
+                "To use the Signaloid C0-microSD in Custom User Bitstream mode"
+                ", power it on without an SD-protocol host present."
+            )
 
     def unlock_bootloader(self) -> None:
         """
@@ -125,27 +154,138 @@ class C0microSDToolkit(C0microSDInterface):
                 print("Error: The data do not match.")
         return False
 
-    def __str__(self) -> str:
-        value = "Signaloid C0-microSD"
-        if self.configuration == "bootloader":
-            value += " | Loaded configuration: Bootloader"
-        elif self.configuration == "soc":
-            value += " | Loaded configuration: Signaloid Core"
-        else:
-            value += " | Loaded configuration: UNKNOWN"
+    def get_bitstream_prefix(self, bitstream_offset: int) -> bytes:
+        """
+        Reads the prefix section of a bitstream
 
-        if self.configuration:
-            major_version = self.configuration_version[0]
-            minor_version = self.configuration_version[1]
-            value += f" | Version: {major_version}.{minor_version}"
-        else:
-            value += " | Version: N/A"
+        :param offset: Offset of bitstream in flash memory
+        """
 
-        if self.configuration_switching:
-            value += " | State SWITCHING"
-        else:
-            value += " | State IDLE"
-        return value
+        # We assume that the prefix is never going to be larger than 4K
+        self.get_status()
+        prefix_chunk = self._read(bitstream_offset, 4096)
+
+        prefix_start_word = b'\xFF\x00'
+        prefix_end_word = b'\x00\xFF'
+
+        prefix_start = prefix_chunk.find(prefix_start_word)
+        prefix_end = prefix_chunk.find(prefix_end_word, prefix_start)
+
+        if prefix_start == -1 or prefix_end == -1:
+            raise ValueError("Could not find bitstream prefix section.")
+
+        prefix_end += len(prefix_end_word)
+
+        prefix_data = prefix_chunk[
+            prefix_start + len(prefix_start_word):
+            prefix_end - len(prefix_end_word)
+        ]
+
+        return prefix_data
+
+    def verify_bitstream_crc(
+            self,
+            bitstream_offset: int,
+            bitstream_crc: int,
+            bitstream_prefix_size: int,
+            bitstream_size: int
+    ) -> bool:
+        """
+        Verifies a the crc32 checksum of a bitstream
+
+        :param bitstream_offset: Offset of bitstream in flash memory
+        :param bitstream_crc: Expected crc of bitstream
+        :param bitstream_size: Expected size of bitstream in bytes
+        """
+
+        bitstream = self._read(
+            bitstream_offset, bitstream_prefix_size + bitstream_size
+        )
+
+        bitstream_data = bitstream[bitstream_prefix_size:]
+        actual_crc = binascii.crc32(bitstream_data) & 0xFFFFFFFF
+
+        return actual_crc == bitstream_crc
+
+    def print_bitstream_information(self, offset) -> None:
+        """
+        Reads and prints bitstream prefix from a specific offset in the
+        device. Also runs crc verification if prefix is in json format and
+        includes `bitstream_crc` and `bitstream_size` attributes
+
+        :param bitstream_offset: Offset of bitstream in flash memory
+        :param bitstream_crc: Expected crc of bitstream
+        :param bitstream_size: Expected size of bitstream in bytes
+        """
+        bitstream_prefix_data = self.get_bitstream_prefix(offset)
+
+        bitstream_prefix_string = bitstream_prefix_data.decode('utf-8')
+
+        print(f"    Bitstream prefix section: {bitstream_prefix_string}")
+
+        try:
+            prefix_json = json.loads(bitstream_prefix_string)
+            bitstream_crc = prefix_json["bitstream_crc"]
+            bitstream_size = prefix_json["bitstream_size"]
+            crc_pass = self.verify_bitstream_crc(
+                offset,
+                bitstream_crc,
+                len(bitstream_prefix_data) + 4,
+                bitstream_size
+            )
+
+            if crc_pass:
+                print("    Bitstream CRC verification: PASS")
+            else:
+                print("    Bitstream CRC verification: FAIL")
+        except ValueError or KeyError:
+            print("    Unable to parse prefix for CRC verification")
+
+    def verify_warmboot_section(self) -> bool:
+        warmboot_section = self._read(0, 5*32).hex()
+        warmboot_section_template = str(
+            "7eaa997e92000044030800008200000108000000000000000000000000000000"
+            "7eaa997e92000044030800008200000108000000000000000000000000000000"
+            "7eaa997e92000044031000008200000108000000000000000000000000000000"
+            "7eaa997e92000044031800008200000108000000000000000000000000000000"
+            "7eaa997e92000044030800008200000108000000000000000000000000000000"
+        )
+
+        return warmboot_section == warmboot_section_template
+
+    def get_serial_number(self) -> str:
+        serial_number_section = self._read(
+            self.SERIAL_NUMBER_OFFSET, self.SERIAL_NUMBER_SIZE
+        )
+        serial_number_section = self._strip_trailing_bytes(
+            serial_number_section, 0xFF
+        )
+
+        serial_number_section = ''.join(
+            to_printable(byte) for byte in serial_number_section
+        )
+        return serial_number_section
+
+    def get_uuid(self) -> str:
+        uuid_section = self._read(
+            self.UUID_OFFSET, self.UUID_SIZE
+        )
+        uuid_section = self._strip_trailing_bytes(
+            uuid_section, 0xFF
+        )
+
+        uuid_section = ''.join(
+            to_printable(byte) for byte in uuid_section
+        )
+        return uuid_section
+
+
+def to_printable(byte: bytearray) -> str:
+    """
+    Decode byte to character using UTF-8 encoding.
+    Decode anything that is not UTF-8 as '.'
+    """
+    return chr(byte) if 32 <= byte <= 126 else '.'
 
 
 def confirm_action() -> bool:
@@ -219,6 +359,12 @@ def main():
         action="store_true",
         help="Switch boot mode."
     )
+    group.add_argument(
+        "-i",
+        dest="print_information",
+        action="store_true",
+        help="Print target C0-microSD information, and run data verification."
+    )
 
     parser.add_argument(
         "-f",
@@ -241,6 +387,36 @@ def main():
         toolkit.get_status()
 
         print(toolkit)
+
+        # Print additional information and exit
+        if args.print_information:
+            if toolkit.configuration != "bootloader":
+                print("Device is not in Bootloader mode.")
+                print(
+                    "To display device Serial Number, device UUID, and verify "
+                    "the bitstream and warmboot sections \nof the "
+                    "non-volatile memory, switch to Bootloader mode and "
+                    "try again."
+                )
+                print("Done.")
+                exit(os.EX_OK)
+
+            print(f"Device Serial Number: {toolkit.get_serial_number()}")
+            print(f"Device UUID: {toolkit.get_uuid()}")
+            print()
+            print("Reading Bootloader bitstream:")
+            toolkit.print_bitstream_information(
+                toolkit.BOOTLOADER_BITSTREAM_OFFSET)
+            print("Reading Signaloid Core bitstream:")
+            toolkit.print_bitstream_information(
+                toolkit.SOC_BITSTREAM_OFFSET)
+            toolkit.verify_warmboot_section()
+            if (toolkit.verify_warmboot_section()):
+                print("Warmboot section verification: PASS")
+            else:
+                print("Warmboot section verification: FAIL")
+            print("Done.")
+            exit(os.EX_OK)
 
         # This is the time to switch boot mode if needed.
         if args.switch_boot_mode:
@@ -275,7 +451,7 @@ def main():
         if args.flash_bootloader:
             if not confirm_action():
                 print("Aborting.")
-                exit(os.EX_OK)
+                exit(os.EX_USAGE)
             toolkit.unlock_bootloader()
             print("Flashing bootloader bitstream...")
             toolkit.flash_and_verify(
@@ -286,7 +462,7 @@ def main():
         elif args.flash_signaloid_core:
             if not confirm_action():
                 print("Aborting.")
-                exit(os.EX_OK)
+                exit(os.EX_USAGE)
             toolkit.unlock_bootloader()
             print("Flashing Signaloid Core bitstream...")
             toolkit.flash_and_verify(
@@ -310,6 +486,14 @@ def main():
         print("Done.")
     except Exception as e:
         print(f"{e}\nAn error occurred, aborting.", file=sys.stderr)
+        if isinstance(e, ValueError):
+            exit(os.EX_DATAERR)
+        elif isinstance(e, FileNotFoundError):
+            exit(os.EX_NOINPUT)
+        elif isinstance(e, PermissionError):
+            exit(os.EX_NOPERM)
+        else:
+            exit(os.EX_SOFTWARE)
 
 
 if __name__ == "__main__":

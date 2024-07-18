@@ -65,7 +65,7 @@ class C0microSDInterface:
         :return: The read buffer
         """
         try:
-            with open(self.target_device, "rb") as device:
+            with open(self.target_device, "rb+") as device:
                 device.seek(offset)
                 return device.read(bytes)
         except PermissionError:
@@ -88,7 +88,7 @@ class C0microSDInterface:
         :return: Number of bytes written.
         """
         try:
-            with open(self.target_device, "wb") as device:
+            with open(self.target_device, "rb+") as device:
                 device.seek(offset)
                 return device.write(data)
 
@@ -181,8 +181,8 @@ class C0microSDSignaloidCoreInterface(C0microSDInterface):
     SOC_CONTROL_REGISTER_OFFSET = 0x00004
     COMMAND_REGISTER_OFFSET = 0x10000
 
-    MOSI_BUFFER_OFFSET = 0x30000
-    MISO_BUFFER_OFFSET = 0x40000
+    MOSI_BUFFER_OFFSET = 0x50000
+    MISO_BUFFER_OFFSET = 0x60000
 
     def write_signaloid_core_MOSI_buffer(self, buffer: bytes) -> None:
         """

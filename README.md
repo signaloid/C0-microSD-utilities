@@ -24,9 +24,9 @@ firmware. The script is written and tested in Python 3.11 on MacOS 14.5 and does
 additional libraries. Following are the program's command-line arguments and usage examples:
 
 ```
-usage: C0_microSD_toolkit.py [-h] -t TARGET_DEVICE [-b INPUT_FILE] [-u | -q | -w | -s] [-f]
+usage: C0_microSD_toolkit.py [-h] -t TARGET_DEVICE [-b INPUT_FILE] [-u | -q | -w | -s | -i] [-f]
 
-Signaloid C0_microSD_toolkit. Version 1.0
+Signaloid C0_microSD_toolkit. Version 1.2
 
 options:
   -h, --help        Show this help message and exit.
@@ -36,35 +36,44 @@ options:
   -q                Flash new Bootloader bitstream.
   -w                Flash new Signaloid Core bitstream.
   -s                Switch boot mode.
+  -i                Print target C0-microSD information, and run data verification.
   -f                Force flash sequence (do not check for bootloader).
 ```
+
+> [!IMPORTANT]  
+> All options except of `-s` require the C0-microSD to be in **Bootloader** mode. 
 
 #### Examples:
 The following examples assume that the C0-microSD is located in`/dev/sda`.
 
-Flashing new custom user bitstream:
+Flash new custom user bitstream:
 ```sh
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -b user-bitstream.bin
 ```
 
-Flashing new user data:
+Flash new user data:
 ```sh
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -b program.bin -u
 ```
 
-Flashing new Bootloader bitstream:
+Flash new Bootloader bitstream:
 ```sh
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -b bootloader-bitstream.bin -q
 ```
 
-Flashing new Signaloid Core bitstream:
+Flash new Signaloid Core bitstream:
 ```sh
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -b signaloid-soc.bin -w
 ```
 
-Toggling boot mode of C0-microSD:
+Toggle boot mode of C0-microSD:
 ```sh
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -s
+```
+
+Print target C0-microSD information and verify loaded bitstreams:
+```sh
+sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -i
 ```
 
 > [!NOTE]  

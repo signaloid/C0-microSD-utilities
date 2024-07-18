@@ -73,8 +73,8 @@ enum SignaloidCoreHostConstants
 	/*
 	 *	Memory-mapped I/0 (MMIO) MISO and MOSI buffer offsets
 	 */
-	kSignaloidCoreHostConstantsMOSIBufferOffset	= 0x30000,
-	kSignaloidCoreHostConstantsMISOBufferOffset	= 0x40000,
+	kSignaloidCoreHostConstantsMOSIBufferOffset	= 0x50000,
+	kSignaloidCoreHostConstantsMISOBufferOffset	= 0x60000,
 };
 
 /*
