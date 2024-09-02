@@ -64,37 +64,37 @@ void hostUtilsPrintC0microSDConfigurationStatus(C0microSDConfigurationStatus sta
 
 /**
  *	@brief	Assert that the target device is a C0-microSD, and that the active
- *		configuration is the Signaloid Core in IDLE state. If any of the
+ *		configuration is the Signaloid SoC in IDLE state. If any of the
  *		above fails, the function exits the process with EXIT_FAILURE code.
  *
  *	@param	status		C0microSDConfigurationStatus containing decoded configuration status
  *				of C0-microSD
  */
-void hostUtilsAssertSignaloidCoreStatus(C0microSDConfigurationStatus status);
+void hostUtilsAssertSignaloidSoCStatus(C0microSDConfigurationStatus status);
 
 /**
  *	@brief	Write data to Signaloid C0-microSD MOSI buffer
  *
  *	@param	device		device path of C0-microSD
- *	@param	srcBuffer	source buffer, this must be at least kSignaloidCoreCommonConstantsMOSIBufferSizeBytes bytes long
+ *	@param	srcBuffer	source buffer, this must be at least kSignaloidSoCCommonConstantsMOSIBufferSizeBytes bytes long
  */
-void hostUtilsWriteSignaloidCoreMOSIBuffer(char *  device, void *  srcBuffer);
+void hostUtilsWriteSignaloidSoCMOSIBuffer(char *  device, void *  srcBuffer);
 
 /**
  *	@brief	Read data from Signaloid C0-microSD MISO buffer
  *
  *	@param	device		device path of C0-microSD
- *	@param	destBuffer	destination buffer, this must be at least kSignaloidCoreCommonConstantsMISOBufferSizeBytes bytes long
+ *	@param	destBuffer	destination buffer, this must be at least kSignaloidSoCCommonConstantsMISOBufferSizeBytes bytes long
  */
-void hostUtilsReadSignaloidCoreMISOBuffer(char *  device, void *  destBuffer);
+void hostUtilsReadSignaloidSoCMISOBuffer(char *  device, void *  destBuffer);
 
 /**
  *	@brief	Read status register of Signaloid C0-microSD
  *
  *	@param	device			device path of C0-microSD
- *	@return	SignaloidCoreStatus	Status code of Signaloid core
+ *	@return	SignaloidSoCStatus	Status code of Signaloid SoC
  */
-SignaloidCoreStatus hostUtilsReadSignaloidCoreStatusRegister(char *  device);
+SignaloidSoCStatus hostUtilsReadSignaloidSoCStatusRegister(char *  device);
 
 
 /**
@@ -103,7 +103,7 @@ SignaloidCoreStatus hostUtilsReadSignaloidCoreStatusRegister(char *  device);
  *	@param	device		device path of C0-microSD
  *	@return	uint32_t	Signaloid C0-microSD SoCControl register value
  */
-uint32_t hostUtilsReadSignaloidCoreSoCControlRegister(char *  device);
+uint32_t hostUtilsReadSignaloidSoCSoCControlRegister(char *  device);
 
 /**
  *	@brief	Send command to Signaloid C0-microSD
@@ -111,4 +111,4 @@ uint32_t hostUtilsReadSignaloidCoreSoCControlRegister(char *  device);
  *	@param	device		device path of C0-microSD
  *	@param	command		command code
  */
-void hostUtilsSendSignaloidCoreCommand(char *  device, uint32_t command);
+void hostUtilsSendSignaloidSoCCommand(char *  device, uint32_t command);

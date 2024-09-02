@@ -7,16 +7,16 @@ as well as the `C0_microSD_toolkit`, which you can use to flash new bitstreams a
 When connected to a host computer, the Signaloid C0-microSD presents itself as an unformatted block
 storage device. Communication with the device is achieved through block reads and writes to a set of
 pre-defined addresses. The C0-microSD can operate in two different modes when connected to a
-host: `Bootloader` mode and `Signaloid Core` mode.
+host: `Bootloader` mode and `Signaloid SoC` mode.
 
 - `Bootloader` mode: This mode allows flashing new bitstreams and firmware to the device.
-- `Signaloid Core` mode: This is the built-in Signaloid C0 core, which features a subset of
+- `Signaloid SoC` mode: This is the built-in Signaloid C0 SoC, which features a subset of
   Signaloid's uncertainty-tracking technology.
 
 Interfacing with the C0-microSD varies depending on the active mode.
 
 In the `src/` folder, you will find common functions and classes for building C and Python applications
-that interact with the C0-microSD when the Signaloid Core mode is active.
+that interact with the C0-microSD when the Signaloid SoC mode is active.
 
 ## Using the `C0_microSD_toolkit.py` tool
 You can use the `C0_microSD_toolkit.py` Python script to configure the C0-microSD and flash new
@@ -26,7 +26,7 @@ additional libraries. Following are the program's command-line arguments and usa
 ```
 usage: C0_microSD_toolkit.py [-h] -t TARGET_DEVICE [-b INPUT_FILE] [-u | -q | -w | -s | -i] [-f]
 
-Signaloid C0_microSD_toolkit. Version 1.2
+Signaloid C0_microSD_toolkit. Version 1.1
 
 options:
   -h, --help        Show this help message and exit.
@@ -34,7 +34,7 @@ options:
   -b INPUT_FILE     Specify the input file for flashing (required with -u, -q, or -w).
   -u                Flash user data.
   -q                Flash new Bootloader bitstream.
-  -w                Flash new Signaloid Core bitstream.
+  -w                Flash new Signaloid SoC bitstream.
   -s                Switch boot mode.
   -i                Print target C0-microSD information, and run data verification.
   -f                Force flash sequence (do not check for bootloader).
@@ -61,7 +61,7 @@ Flash new Bootloader bitstream:
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -b bootloader-bitstream.bin -q
 ```
 
-Flash new Signaloid Core bitstream:
+Flash new Signaloid SoC bitstream:
 ```sh
 sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -b signaloid-soc.bin -w
 ```
@@ -77,6 +77,6 @@ sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -i
 ```
 
 > [!NOTE]  
-> Using the `-s` option will toggle the active configuration. So, if the device has booted in `Bootloader` mode, this option will switch to `Signaloid Core` mode, and vice versa.
+> Using the `-s` option will toggle the active configuration. So, if the device has booted in `Bootloader` mode, this option will switch to `Signaloid SoC` mode, and vice versa.
 
 [^1]: Implementing a subset of the full capabilities of the Signaloid C0 processor.

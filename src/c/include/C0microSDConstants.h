@@ -41,59 +41,59 @@ typedef enum
 {
 	kC0microSDConfigurationUnknown		= 0, /* Unknown configuration id */
 	kC0microSDConfigurationBootloader	= 1, /* Bootloader configuration id */
-	kC0microSDConfigurationSignaloidCore	= 2, /* Signaloid Core configuration id */
+	kC0microSDConfigurationSignaloidSoC	= 2, /* Signaloid SoC configuration id */
 } C0microSDConfiguration;
 
-enum SignaloidCoreCommonConstants
+enum SignaloidSoCCommonConstants
 {
 	/*
 	 *	MOSI buffer size in number of bytes and words
 	 */
-	kSignaloidCoreCommonConstantsMOSIBufferSizeBytes	= 4096,
-	kSignaloidCoreCommonConstantsMOSIBufferSizeWords	= 1024,
+	kSignaloidSoCCommonConstantsMOSIBufferSizeBytes	= 4096,
+	kSignaloidSoCCommonConstantsMOSIBufferSizeWords	= 1024,
 	/*
 	 *	MISO buffer size in number of bytes and words
 	 */
-	kSignaloidCoreCommonConstantsMISOBufferSizeBytes	= 4096,
-	kSignaloidCoreCommonConstantsMISOBufferSizeWords	= 1024,
+	kSignaloidSoCCommonConstantsMISOBufferSizeBytes	= 4096,
+	kSignaloidSoCCommonConstantsMISOBufferSizeWords	= 1024,
 };
 
 /*
  *	The following constants are used by the host application for the Memory Mapped I/O
- *	of the Signaloid Core. These denote offsets for communicating over the SD interface.
+ *	of the Signaloid SoC. These denote offsets for communicating over the SD interface.
  */
-enum SignaloidCoreHostConstants
+enum SignaloidSoCHostConstants
 {
 	/*
 	 *	Memory-mapped I/0 (MMIO) register offsets
 	 */
-	kSignaloidCoreHostConstantsStatusOffset		= 0x00000,
-	kSignaloidCoreHostConstantsSoCControlOffset	= 0x00004,	
-	kSignaloidCoreHostConstantsCommandOffset	= 0x10000,
+	kSignaloidSoCHostConstantsStatusOffset		= 0x00000,
+	kSignaloidSoCHostConstantsSoCControlOffset	= 0x00004,	
+	kSignaloidSoCHostConstantsCommandOffset	= 0x10000,
 	/*
 	 *	Memory-mapped I/0 (MMIO) MISO and MOSI buffer offsets
 	 */
-	kSignaloidCoreHostConstantsMOSIBufferOffset	= 0x50000,
-	kSignaloidCoreHostConstantsMISOBufferOffset	= 0x60000,
+	kSignaloidSoCHostConstantsMOSIBufferOffset	= 0x50000,
+	kSignaloidSoCHostConstantsMISOBufferOffset	= 0x60000,
 };
 
 /*
- *	The following constants are used by the Signaloid Core application for the Memory Mapped I/O
- *	of the device. These denote memory addresses in the Signaloid Core.
+ *	The following constants are used by the Signaloid SoC application for the Memory Mapped I/O
+ *	of the device. These denote memory addresses in the Signaloid SoC.
  */
-enum SignaloidCoreDeviceConstants
+enum SignaloidSoCDeviceConstants
 {
 	/*
 	 *	Memory-mapped I/0 (MMIO) register addresses
 	 */
-	kSignaloidCoreDeviceConstantsStatusAddress	= 0x40000000,
-	kSignaloidCoreDeviceConstantsSoCControlAddress	= 0x40000004,	
-	kSignaloidCoreDeviceConstantsCommandAddress	= 0x40000008,
+	kSignaloidSoCDeviceConstantsStatusAddress	= 0x40000000,
+	kSignaloidSoCDeviceConstantsSoCControlAddress	= 0x40000004,	
+	kSignaloidSoCDeviceConstantsCommandAddress	= 0x40000008,
 	/*
 	 *	Memory-mapped I/0 (MMIO) MISO and MOSI buffer addresses
 	 */
-	kSignaloidCoreDeviceConstantsMISOBufferAddress	= 0x40010000,
-	kSignaloidCoreDeviceConstantsMOSIBufferAddress	= 0x40020000,
+	kSignaloidSoCDeviceConstantsMISOBufferAddress	= 0x40010000,
+	kSignaloidSoCDeviceConstantsMOSIBufferAddress	= 0x40020000,
 };
 
 /*
@@ -103,11 +103,11 @@ enum SignaloidCoreDeviceConstants
  */
 typedef enum
 {
-	kSignaloidCoreStatusWaitingForCommand	= 0, /* Waiting for command from host */
-	kSignaloidCoreStatusCalculating		= 1, /* Executing command */
-	kSignaloidCoreStatusDone		= 2, /* Execution complete */
-	kSignaloidCoreStatusInvalidCommand	= 3, /* Invalid command */
-} SignaloidCoreStatus;
+	kSignaloidSoCStatusWaitingForCommand	= 0, /* Waiting for command from host */
+	kSignaloidSoCStatusCalculating		= 1, /* Executing command */
+	kSignaloidSoCStatusDone		= 2, /* Execution complete */
+	kSignaloidSoCStatusInvalidCommand	= 3, /* Invalid command */
+} SignaloidSoCStatus;
 
 /*
  *	Configuration status registers

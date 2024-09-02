@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
 
-# 	Copyright (c) 2024, Signaloid.
+# Copyright (c) 2024, Signaloid.
 #
-# 	Permission is hereby granted, free of charge, to any person obtaining a copy
-# 	of this software and associated documentation files (the "Software"), to
-# 	deal in the Software without restriction, including without limitation the
-# 	rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# 	sell copies of the Software, and to permit persons to whom the Software is
-# 	furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# 	The above copyright notice and this permission notice shall be included in
-# 	all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
-# 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# 	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# 	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# 	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# 	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# 	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# 	DEALINGS IN THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
 import sys
 import struct
 import time
 
-SIGNALOID_CORE_STATUS_WAIT_FOR_COMMAND = 0
-SIGNALOID_CORE_STATUS_CALCULATING = 1
-SIGNALOID_CORE_STATUS_DONE = 2
-SIGNALOID_CORE_STATUS_INVALID_COMMAND = 3
+SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND = 0
+SIGNALOID_SOC_STATUS_CALCULATING = 1
+SIGNALOID_SOC_STATUS_DONE = 2
+SIGNALOID_SOC_STATUS_INVALID_COMMAND = 3
 
 K_CALCULATE_NO_COMMAND = 0
 
@@ -65,7 +65,7 @@ class C0microSDInterface:
         :return: The read buffer
         """
         try:
-            with open(self.target_device, "rb+") as device:
+            with open(self.target_device, "rb") as device:
                 device.seek(offset)
                 return device.read(bytes)
         except PermissionError:
@@ -88,7 +88,7 @@ class C0microSDInterface:
         :return: Number of bytes written.
         """
         try:
-            with open(self.target_device, "rb+") as device:
+            with open(self.target_device, "wb") as device:
                 device.seek(offset)
                 return device.write(data)
 
@@ -147,7 +147,7 @@ class C0microSDInterface:
         if self.configuration == "bootloader":
             value += " | Loaded configuration: Bootloader"
         elif self.configuration == "soc":
-            value += " | Loaded configuration: Signaloid Core"
+            value += " | Loaded configuration: Signaloid SoC"
         else:
             value += " | Loaded configuration: UNKNOWN"
 
@@ -165,13 +165,13 @@ class C0microSDInterface:
         return value
 
 
-class C0microSDSignaloidCoreInterface(C0microSDInterface):
-    """Communication interface for C0-microSD Signaloid Core configuration.
+class C0microSDSignaloidSoCInterface(C0microSDInterface):
+    """Communication interface for C0-microSD Signaloid SoC configuration.
 
     This class extends the C0microSDInterface class to include constants and
     routines for interfacing with the Signaloid C0-microSD when the Signaloid
-    Core is loaded. You can use this class to read and write to/from the
-    MISO/MOSI buffers, issue commands, and probe the status of the core.
+    SoC is loaded. You can use this class to read and write to/from the
+    MISO/MOSI buffers, issue commands, and probe the status of the SoC.
     """
 
     MOSI_BUFFER_SIZE_BYTES = 4096
@@ -184,7 +184,7 @@ class C0microSDSignaloidCoreInterface(C0microSDInterface):
     MOSI_BUFFER_OFFSET = 0x50000
     MISO_BUFFER_OFFSET = 0x60000
 
-    def write_signaloid_core_MOSI_buffer(self, buffer: bytes) -> None:
+    def write_signaloid_soc_MOSI_buffer(self, buffer: bytes) -> None:
         """
         Writes data to the C0-microSD MOSI buffer.
 
@@ -198,7 +198,7 @@ class C0microSDSignaloidCoreInterface(C0microSDInterface):
 
         self._write(self.MOSI_BUFFER_OFFSET, buffer)
 
-    def read_signaloid_core_MISO_buffer(self) -> bytes:
+    def read_signaloid_soc_MISO_buffer(self) -> bytes:
         """
         Reads data from the C0-microSD MISO buffer.
 
@@ -209,7 +209,7 @@ class C0microSDSignaloidCoreInterface(C0microSDInterface):
             self.MISO_BUFFER_SIZE_BYTES
         )
 
-    def send_signaloid_core_command(self, value: int) -> None:
+    def send_signaloid_soc_command(self, value: int) -> None:
         """
         Sends a command to the C0-microSD device.
 
@@ -218,7 +218,7 @@ class C0microSDSignaloidCoreInterface(C0microSDInterface):
         # Pack the uint32_t value into a 4-byte buffer and send it
         self._write(self.COMMAND_REGISTER_OFFSET, struct.pack("I", value))
 
-    def get_signaloid_core_status(self) -> int:
+    def get_signaloid_soc_status(self) -> int:
         """
         Reads the C0-microSD status register.
 
@@ -248,33 +248,33 @@ class C0microSDSignaloidCoreInterface(C0microSDInterface):
         """
         data_buffer = None
 
-        self.send_signaloid_core_command(command)
+        self.send_signaloid_soc_command(command)
         sys.stdout.write("Waiting for calculation to finish.")
         sys.stdout.flush()
 
         while True:
             # Get status of Signaloid C0-microSD compute module
-            core_status = self.get_signaloid_core_status()
+            soc_status = self.get_signaloid_soc_status()
 
-            if core_status == SIGNALOID_CORE_STATUS_CALCULATING:
+            if soc_status == SIGNALOID_SOC_STATUS_CALCULATING:
                 # Signaloid C0-microSD compute module is still calculating
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 time.sleep(0.5)
-            elif core_status == SIGNALOID_CORE_STATUS_DONE:
+            elif soc_status == SIGNALOID_SOC_STATUS_DONE:
                 # Signaloid C0-microSD completed calculation
                 print("\nRead data content...")
-                data_buffer = self.read_signaloid_core_MISO_buffer()
+                data_buffer = self.read_signaloid_soc_MISO_buffer()
                 break
-            elif core_status == SIGNALOID_CORE_STATUS_INVALID_COMMAND:
+            elif soc_status == SIGNALOID_SOC_STATUS_INVALID_COMMAND:
                 print("\nERROR: Device returned 'Unknown CMD'\n")
                 break
-            elif core_status != SIGNALOID_CORE_STATUS_WAIT_FOR_COMMAND:
+            elif soc_status != SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND:
                 print("\nERROR: Device returned 'Unknown CMD'\n")
                 break
 
-        while (self.get_signaloid_core_status()
-               != SIGNALOID_CORE_STATUS_WAIT_FOR_COMMAND):
-            self.send_signaloid_core_command(idle_command)
+        while (self.get_signaloid_soc_status()
+               != SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND):
+            self.send_signaloid_soc_command(idle_command)
 
         return data_buffer

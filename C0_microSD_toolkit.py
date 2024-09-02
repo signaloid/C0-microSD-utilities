@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 
-# 	Copyright (c) 2024, Signaloid.
+# Copyright (c) 2024, Signaloid.
 #
-# 	Permission is hereby granted, free of charge, to any person obtaining a copy
-# 	of this software and associated documentation files (the "Software"), to
-# 	deal in the Software without restriction, including without limitation the
-# 	rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# 	sell copies of the Software, and to permit persons to whom the Software is
-# 	furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# 	The above copyright notice and this permission notice shall be included in
-# 	all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
-# 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# 	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# 	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# 	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# 	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# 	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# 	DEALINGS IN THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
 import argparse
 import sys
@@ -39,7 +39,7 @@ class C0microSDToolkit(C0microSDInterface):
     BOOTLOADER_UNLOCK_OFFSET = 0x60000
     # 512 KiB offset for bootloader bitstream
     BOOTLOADER_BITSTREAM_OFFSET = 0x80000
-    # 1.0 MiB offset for Signaloid Core bitstream
+    # 1.0 MiB offset for Signaloid SoC bitstream
     SOC_BITSTREAM_OFFSET = 0x100000
     # 1.5 MiB offset for application bitstream
     USER_BITSTREAM_OFFSET = 0x180000
@@ -78,12 +78,12 @@ class C0microSDToolkit(C0microSDInterface):
         if (self.configuration) == "bootloader":
             print(
                 "Switching device boot mode from "
-                "Bootloader to Signaloid Core..."
+                "Bootloader to Signaloid SoC..."
             )
         elif (self.configuration) == "soc":
             print(
                 "Switching device boot mode from "
-                "Signaloid Core to Bootloader..."
+                "Signaloid SoC to Bootloader..."
             )
         elif self.force_transactions:
             print("Switching device boot mode...")
@@ -103,7 +103,7 @@ class C0microSDToolkit(C0microSDInterface):
 
     def unlock_bootloader(self) -> None:
         """
-        Unlocks the bootloader. Used to flash new bootloader or Signaloid Core.
+        Unlocks the bootloader. Used to flash new bootloader or Signaloid SoC.
         """
         self.get_status()
         print("Unlocking bootloader...")
@@ -111,7 +111,7 @@ class C0microSDToolkit(C0microSDInterface):
 
     def lock_bootloader(self) -> None:
         """
-        Locks the bootloader and Signaloid Core sections.
+        Locks the bootloader and Signaloid SoC sections.
         """
         self.get_status()
         print("Locking bootloader...")
@@ -349,9 +349,9 @@ def main():
     )
     group.add_argument(
         "-w",
-        dest="flash_signaloid_core",
+        dest="flash_signaloid_soc",
         action="store_true",
-        help="Flash new Signaloid Core bitstream."
+        help="Flash new Signaloid SoC bitstream."
     )
     group.add_argument(
         "-s",
@@ -407,7 +407,7 @@ def main():
             print("Reading Bootloader bitstream:")
             toolkit.print_bitstream_information(
                 toolkit.BOOTLOADER_BITSTREAM_OFFSET)
-            print("Reading Signaloid Core bitstream:")
+            print("Reading Signaloid SoC bitstream:")
             toolkit.print_bitstream_information(
                 toolkit.SOC_BITSTREAM_OFFSET)
             toolkit.verify_warmboot_section()
@@ -459,12 +459,12 @@ def main():
                 MAX_FLASH_ATTEMPTS
             )
             toolkit.lock_bootloader
-        elif args.flash_signaloid_core:
+        elif args.flash_signaloid_soc:
             if not confirm_action():
                 print("Aborting.")
                 exit(os.EX_USAGE)
             toolkit.unlock_bootloader()
-            print("Flashing Signaloid Core bitstream...")
+            print("Flashing Signaloid SoC bitstream...")
             toolkit.flash_and_verify(
                 file_data,
                 toolkit.SOC_BITSTREAM_OFFSET,
