@@ -32,6 +32,7 @@ options:
   -h, --help        Show this help message and exit.
   -t TARGET_DEVICE  Specify the target device path.
   -b INPUT_FILE     Specify the input file for flashing (required with -u, -q, or -w).
+  -p PAD_SIZE       Pad input file with zeros to target size.
   -u                Flash user data.
   -q                Flash new Bootloader bitstream.
   -w                Flash new Signaloid SoC bitstream.
@@ -77,6 +78,44 @@ sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -i
 ```
 
 > [!NOTE]  
-> Using the `-s` option will toggle the active configuration. So, if the device has booted in `Bootloader` mode, this option will switch to `Signaloid SoC` mode, and vice versa.
+> Using the `-s` option will toggle the active configuration. So, if the device has booted in 
+> `Bootloader` mode, this option will switch to `Signaloid Core` mode, and vice versa.
+
+## Using the `SD_Dev_toolkit.py` tool
+You can use the `SD_Dev_toolkit.py` to detect and power-cycle the SD cards on-board the SD-Dev.
+```
+usage: SD_Dev_toolkit.py [-h] [-p]
+
+Signaloid SD_Dev_toolkit. Version 0.1
+
+options:
+  -h, --help         Show this help message and exit.
+  -p, --power-cycle  Power-cycle the onboard full-size SD and microSD cards.
+```
+
+## Using the `SD_Dev_power_measure.py` tool
+You can use the `SD_Dev_power_measure.py` to read and log power measurement data using the SD-Dev
+on-board current sense circuitry. ADC channel 0 corresponds to the full-size SD card socket and
+channel 1 to the microSD card socket. For this functionality to work, you must first enable the
+I2C kernel module. If you use one of the official Raspberry-Pi OS images, you can do that using
+the `raspi-config` command.
+```
+usage: SD_Dev_power_measure.py [-h] [-s SMBUS_NUMBER] [-o OUTPUT_FILENAME] [-c {0,1}] [-g {1,2,4,8}] [-r {12,14,16}]
+
+Signaloid SD_Dev_power_measure. Version 0.1
+
+options:
+  -h, --help            Show this help message and exit.
+  -s SMBUS_NUMBER, --smbus-number SMBUS_NUMBER
+                        Specify the target smbus number. (default: 1)
+  -o OUTPUT_FILENAME, --output_filename OUTPUT_FILENAME
+                        Filename of output csv file. When set, the application will log measurements to this file. (default: None)
+  -c {0,1}, --channel {0,1}
+                        ADC channel. Channel 0 corresponds to the full-size SD card socket and channel 1 to the microSD card socket. (default: 1)
+  -g {1,2,4,8}, --gain {1,2,4,8}
+                        ADC Programmable Gain Amplifier (PGA) gain. (default: 4)
+  -r {12,14,16}, --samle-rate-bits {12,14,16}
+                        Sample bits. (default: 12)
+```
 
 [^1]: Implementing a subset of the full capabilities of the Signaloid C0 processor.

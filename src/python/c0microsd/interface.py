@@ -20,7 +20,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import struct
 import time
 
@@ -130,10 +129,8 @@ class C0microSDInterface:
         self.configuration_version = (major_version, minor_version)
 
         # Decode configuration state register
-        self.configuration_state = data[8:12]
-        self.configuration_switching = bool(
-            int.from_bytes(self.configuration_state, byteorder="big") & 1
-        )
+        self.configuration_state = struct.unpack("I", data[8:12])[0]
+        self.configuration_switching = bool(self.configuration_state & 1)
 
         if self.configuration_switching and not self.force_transactions:
             print(self)
@@ -198,16 +195,24 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
 
         self._write(self.MOSI_BUFFER_OFFSET, buffer)
 
-    def read_signaloid_soc_MISO_buffer(self) -> bytes:
+    def read_signaloid_soc_MISO_buffer(
+        self,
+        size: int = MISO_BUFFER_SIZE_BYTES
+    ) -> bytes:
         """
         Reads data from the C0-microSD MISO buffer.
 
+        :param size: Size in bytes of data to read.
+
         :return: The read buffer
         """
-        return self._read(
-            self.MISO_BUFFER_OFFSET,
-            self.MISO_BUFFER_SIZE_BYTES
-        )
+
+        if size > self.MISO_BUFFER_SIZE_BYTES:
+            raise ValueError(
+                "Read MISO size exceeds"
+                f" {self.MISO_BUFFER_SIZE_BYTES} bytes."
+            )
+        return self._read(self.MISO_BUFFER_OFFSET, size)
 
     def send_signaloid_soc_command(self, value: int) -> None:
         """
@@ -249,8 +254,7 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
         data_buffer = None
 
         self.send_signaloid_soc_command(command)
-        sys.stdout.write("Waiting for calculation to finish.")
-        sys.stdout.flush()
+        print("Waiting for calculation to finish.", end="")
 
         while True:
             # Get status of Signaloid C0-microSD compute module
@@ -258,8 +262,7 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
 
             if soc_status == SIGNALOID_SOC_STATUS_CALCULATING:
                 # Signaloid C0-microSD compute module is still calculating
-                sys.stdout.write(".")
-                sys.stdout.flush()
+                print(".", end="")
                 time.sleep(0.5)
             elif soc_status == SIGNALOID_SOC_STATUS_DONE:
                 # Signaloid C0-microSD completed calculation

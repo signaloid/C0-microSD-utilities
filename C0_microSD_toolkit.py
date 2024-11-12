@@ -25,6 +25,7 @@ import sys
 import os
 import json
 import binascii
+import re
 
 from src.python.c0microsd.interface import C0microSDInterface
 
@@ -308,6 +309,32 @@ def confirm_action() -> bool:
             print("Invalid input. Please enter 'y' for yes or 'n' for no.")
 
 
+def parse_size(size_str):
+    """
+    Parses a size string with optional suffixes (K, M, G)
+    and converts it to bytes.
+
+    :param size_str: Size string (e.g., '1K', '5M', '3G')
+    :return: Size in bytes as an integer
+    """
+    match = re.match(r"(\d+)([KMG]?)", size_str.upper())
+    if not match:
+        raise ValueError("Invalid padding size format. "
+                         "Use a number or a number with suffix (K, M, G).")
+
+    size = int(match.group(1))
+    suffix = match.group(2)
+
+    if suffix == 'K':
+        return size * 1024
+    elif suffix == 'M':
+        return size * (1024 ** 2)
+    elif suffix == 'G':
+        return size * (1024 ** 3)
+    else:
+        return size
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=f"Signaloid C0-microSD-toolkit. Version {APP_VERSION}",
@@ -332,6 +359,13 @@ def main():
         dest="input_file",
         help=("Specify the input file for flashing "
               "(required with -u, -q, or -w)."),
+    )
+
+    parser.add_argument(
+        "-p",
+        dest="pad_size",
+        type=str,
+        help=("Pad input file with zeros to target size.")
     )
 
     group = parser.add_mutually_exclusive_group()
@@ -447,6 +481,19 @@ def main():
 
         print("Filename: ", args.input_file)
         print("File size: ", len(file_data), "bytes.")
+
+        # Parse the pad size if provided
+        pad_size = None
+        if args.pad_size is not None:
+            pad_size = parse_size(args.pad_size)
+
+        if pad_size is not None and pad_size > len(file_data):
+            # Pad the content with zeros
+            file_data = file_data + (b'\x00' * (pad_size - len(file_data)))
+            print(f"Input file padded to {pad_size} bytes.")
+        elif pad_size is not None and pad_size < len(file_data):
+            print("Warning: The specified padding size is smaller than the "
+                  "input file size. No padding applied.")
 
         if args.flash_bootloader:
             if not confirm_action():
