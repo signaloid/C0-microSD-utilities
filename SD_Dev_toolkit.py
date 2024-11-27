@@ -54,4 +54,4 @@ if __name__ == "__main__":
 
     if args.power_cycle:
         "Power cycling SD cards..."
-        controller.refresh_sd_cards()
+        controller.refresh_sd_cards(dynamic=True)

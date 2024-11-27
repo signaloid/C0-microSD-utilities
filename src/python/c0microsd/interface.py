@@ -129,7 +129,7 @@ class C0microSDInterface:
         self.configuration_version = (major_version, minor_version)
 
         # Decode configuration state register
-        self.configuration_state = struct.unpack("I", data[8:12])[0]
+        self.configuration_state = struct.unpack(">I", data[8:12])[0]
         self.configuration_switching = bool(self.configuration_state & 1)
 
         if self.configuration_switching and not self.force_transactions:

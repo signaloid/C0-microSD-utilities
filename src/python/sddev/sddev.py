@@ -315,15 +315,22 @@ class SDDevController(SDDev):
     # Seconds to delay after a power cycle event
     POWER_CYCLE_DELAY_AFTER = 5
 
-    def __init__(self):
+    def __init__(self, cleanup: bool = False):
+        self.cleanup = cleanup
+        GPIO.setwarnings(False)
         super().__init__()
+
+    def __del__(self):
+        if self.cleanup:
+            GPIO.cleanup()
 
     def reset_controllers(
             self,
             reset_usb_hub: bool = False,
             reset_sd_controller: bool = False,
             reset_microsd_controller: bool = False,
-            power_cycle_sd_cards: bool = False) -> None:
+            power_cycle_sd_cards: bool = False,
+            dynamic: bool = False) -> None:
 
         """
             Reset USB and SD controllers, and power cycle the sd card slots.
@@ -334,10 +341,20 @@ class SDDevController(SDDev):
                 reset_microsd_controller (bool): Reset microSD controller
                 power_cycle_sd_cards (bool): Power-cycle full-size SD
                                              and microSD cards
+                dynamic (bool): Do not enable controllers that do not have
+                                an SD connected
         """
 
         # Use BCM GPIO numbering
         GPIO.setmode(GPIO.BCM)
+
+        # In dynamic mode, enable only the controllers that have an SD
+        # card connected. This must be done BEFORE power-cycling
+
+        if dynamic:
+            full_size_sd_enable, micro_sd_enable = self.detect_cards()
+        else:
+            full_size_sd_enable, micro_sd_enable = (True, True)
 
         if reset_usb_hub:
             GPIO.setup(self.USB_HUB_RST, GPIO.OUT)
@@ -356,23 +373,25 @@ class SDDevController(SDDev):
 
         if reset_usb_hub:
             GPIO.output(self.USB_HUB_RST, GPIO.LOW)
-        if reset_sd_controller:
+        if reset_sd_controller and full_size_sd_enable:
             GPIO.output(self.SD_RST_N, GPIO.HIGH)
-        if reset_microsd_controller:
+        if reset_microsd_controller and micro_sd_enable:
             GPIO.output(self.USD_RST_N, GPIO.HIGH)
         if power_cycle_sd_cards:
             GPIO.output(self.SD_PWR_EN, GPIO.HIGH)
 
         time.sleep(self.POWER_CYCLE_DELAY_AFTER)
 
-        GPIO.cleanup()
-
-    def refresh_sd_cards(self) -> None:
+    def refresh_sd_cards(self, dynamic: bool = False) -> None:
         """
         Refresh sd cards. Reset SD and microSD controllers and
         power cycles the sd cards.
+
+        Args:
+            dynamic (bool): Do not enable controllers that do not have
+                            an SD connected
         """
-        self.reset_controllers(False, True, True, True)
+        self.reset_controllers(False, True, True, True, dynamic)
 
     def detect_cards(self) -> Tuple[bool, bool]:
         """
@@ -393,7 +412,5 @@ class SDDevController(SDDev):
 
         full_size_sd_detect = not GPIO.input(self.SD_CD_N)
         micro_sd_detect = bool(GPIO.input(self.USD_CD))
-
-        GPIO.cleanup()
 
         return full_size_sd_detect, micro_sd_detect
