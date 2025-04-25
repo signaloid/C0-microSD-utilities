@@ -119,3 +119,58 @@ options:
 ```
 
 [^1]: Implementing a subset of the full capabilities of the Signaloid C0 processor.
+
+## Using the `signaloid_api` module
+You can use the `signaloid_api` module to build and download binaries for applications that support uncertainty-tracking on the Signaloid SoC, from Signaloid's API. This module provides both a command-line interface and a Python API for programmatic usage.
+
+For detailed documentation and examples, please see the [signaloid_api README](src/python/signaloid_api/README.md).
+
+### Quick Start
+
+```bash
+# Download a binary using repository ID
+python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-id YOUR_REPO_ID
+
+# Build directly from a GitHub repository URL
+python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-url https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
+
+# For help and more options
+python -m src.python.signaloid_api.core_downloader --help
+```
+
+#### Example Output
+
+When using a GitHub repository URL, the tool will:
+1. Verify the repository exists and has a `src` directory
+2. Connect the GitHub repository to the Signaloid Cloud Developer Platform
+3. Build the application with the specified core (default: C0-microSD-N)
+4. Download the resulting binary as `buildArtifacts.tar.gz`
+
+The downloaded binary can then be flashed to your C0-microSD device using the C0_microSD_toolkit.py script.
+
+```bash
+$ python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-url https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
+
+Verifying GitHub repository: https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
+Repository signaloid/Signaloid-C0-microSD-Demo-Calculator is valid and has a src directory
+Creating Signaloid repository from GitHub URL: https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
+Repository created with ID: rep_5c8104c6bb47468bbce9e0d1a83d2123
+
+Using C0-microSD-N (default)
+
+Creating build for repository rep_5c8104c6bb47468bbce9e0d1a83d2123 with C0-microSD-N...
+Build created with ID: bld_ddff3fd873304eccaf68b7ce6f277123
+
+Waiting for build to complete...
+Build status: Initialising
+Build status: Completed
+
+Getting build outputs...
+Build outputs retrieved
+
+Build output:
+
+
+Downloading binary...
+Binary downloaded to: buildArtifacts.tar.gz
+```
