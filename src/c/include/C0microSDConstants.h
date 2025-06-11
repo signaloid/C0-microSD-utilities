@@ -105,7 +105,7 @@ typedef enum
 {
 	kSignaloidSoCStatusWaitingForCommand	= 0, /* Waiting for command from host */
 	kSignaloidSoCStatusCalculating		= 1, /* Executing command */
-	kSignaloidSoCStatusDone		= 2, /* Execution complete */
+	kSignaloidSoCStatusDone			= 2, /* Execution complete */
 	kSignaloidSoCStatusInvalidCommand	= 3, /* Invalid command */
 } SignaloidSoCStatus;
 

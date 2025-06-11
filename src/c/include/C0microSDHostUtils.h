@@ -76,9 +76,9 @@ void hostUtilsAssertSignaloidSoCStatus(C0microSDConfigurationStatus status);
  *	@brief	Write data to Signaloid C0-microSD MOSI buffer
  *
  *	@param	device		device path of C0-microSD
- *	@param	srcBuffer	source buffer, this must be at least kSignaloidSoCCommonConstantsMOSIBufferSizeBytes bytes long
+ *	@param	sourceBuffer	source buffer, this must be at least kSignaloidSoCCommonConstantsMOSIBufferSizeBytes bytes long
  */
-void hostUtilsWriteSignaloidSoCMOSIBuffer(char *  device, void *  srcBuffer);
+void hostUtilsWriteSignaloidSoCMOSIBuffer(char *  device, void *  sourceBuffer);
 
 /**
  *	@brief	Read data from Signaloid C0-microSD MISO buffer

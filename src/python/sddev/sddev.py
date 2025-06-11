@@ -216,7 +216,7 @@ class SDDevADCInterface(SDDev):
         self.configuration_register = configuration_register
         self.bus.write_byte(
             self.MCP3426_I2C_ADDRESS,
-            self.configuration_register)
+            self.configuration_register | 0x80)
 
     def adc_to_current(
             self,

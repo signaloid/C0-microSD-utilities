@@ -22,8 +22,8 @@
 from src.python.sddev.sddev import SDDevADCInterface
 import sys
 import signal
-from datetime import datetime
 import argparse
+import time
 
 APP_VERSION = "0.1"  # Application version
 
@@ -125,8 +125,8 @@ if __name__ == "__main__":
         # Multiply by 1000 to convert it to mA
         current = sdDev.read_converted_current_measurement() * 1000
         power = current * sdDev.SDDEV_SD_USD_VOLTAGE
-        # Get the current time
-        now = datetime.now()
+        # Get the current performance timer in microseconds
+        now = (time.perf_counter_ns() // 1_000)
 
         # Output data to terminal
         print(f'\rCurrent measurement: \t{current:20.10f} mA', end='')
@@ -134,14 +134,9 @@ if __name__ == "__main__":
 
         if args.output_filename is not None:
             # Calculate the time in microseconds since the start of the day
-            timestamp = (
-                now.hour * 3600 +
-                now.minute * 60 +
-                now.second) * 1_000_000 + now.microsecond
-
             fp.write(
                 str(measurement_count) + "," +
-                str(timestamp) + "," +
+                str(now) + "," +
                 str(current) + "," +
                 str(power) + "\n"
             )
