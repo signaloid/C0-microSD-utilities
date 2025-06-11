@@ -237,7 +237,9 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
     def calculate_command(
             self,
             command: int,
-            idle_command: int = K_CALCULATE_NO_COMMAND
+            idle_command: int = K_CALCULATE_NO_COMMAND,
+            poll_sleep_time: float = 0.5,
+            skip_MISO_read: bool = False
     ) -> bytes:
         """
         Basic command calculation routine. This function sends a command to
@@ -263,11 +265,13 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
             if soc_status == SIGNALOID_SOC_STATUS_CALCULATING:
                 # Signaloid C0-microSD compute module is still calculating
                 print(".", end="")
-                time.sleep(0.5)
+                time.sleep(poll_sleep_time)
             elif soc_status == SIGNALOID_SOC_STATUS_DONE:
                 # Signaloid C0-microSD completed calculation
-                print("\nRead data content...")
-                data_buffer = self.read_signaloid_soc_MISO_buffer()
+                print("\n")
+                if not skip_MISO_read:
+                    print("Read data content...")
+                    data_buffer = self.read_signaloid_soc_MISO_buffer()
                 break
             elif soc_status == SIGNALOID_SOC_STATUS_INVALID_COMMAND:
                 print("\nERROR: Device returned 'Unknown CMD'\n")

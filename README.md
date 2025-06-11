@@ -44,7 +44,7 @@ options:
 > [!IMPORTANT]  
 > All options except of `-s` require the C0-microSD to be in **Bootloader** mode. 
 
-#### Examples:
+### Examples:
 The following examples assume that the C0-microSD is located in`/dev/sda`.
 
 Flash new custom user bitstream:
@@ -81,6 +81,67 @@ sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -i
 > Using the `-s` option will toggle the active configuration. So, if the device has booted in 
 > `Bootloader` mode, this option will switch to `Signaloid Core` mode, and vice versa.
 
+# C0-microSD+ Utilities
+This repository includes C and python libraries for the Signaloid C0-microSD+ compute module, as well as the `C0_microSD_plus_toolkit`, which you can use to flash new bitstreams and firmware to the device.
+
+## Interfacing with the Signaloid C0-microSD+
+When connected to a host computer, the Signaloid C0-microSD+ presents itself as an unformatted block
+storage device. The host computer communicates with the device through block reads and writes to a set of
+pre-defined addresses. In contrast to the C0-microSD, the C0-microSD+ operates in a single mode, which
+supports flashing and running new application binaries, as well as updating the FPGA bitstream.
+
+## Using the `C0_microSD_plus_toolkit.py` tool
+You can use the `C0_microSD_plus_toolkit.py` Python script to configure the C0-microSD+ and flash new
+firmware. The script is written and tested in Python 3.11 on MacOS 14.5 and does not use any
+additional libraries. Following are the program's command-line arguments and usage examples:
+
+```
+usage: C0_microSD_plus_toolkit.py [-h] target_device <command> ...
+
+Signaloid C0-microSD-plus-toolkit. Version 1.0
+
+positional arguments:
+  target_device      Target device path
+  <command>
+    info             Print target C0-microSD+ info and run bitstream verification.
+    core             Start or stop the Signaloid SoC core
+    flash-application
+                     Flash an application binary
+    flash-bitstream  Flash a bitstream file
+
+options:
+  -h, --help         show this help message and exit
+```
+
+### Examples:
+The following examples assume that the C0-microSD is located in`/dev/sda`.
+
+Flash new Signaloid SoC application binary:
+```sh
+sudo python C0_microSD_plus_toolkit.py /dev/sda flash-application program.bin   
+```
+
+Flash new FPGA bitstream:
+```sh
+sudo python C0_microSD_plus_toolkit.py /dev/sda flash-bitstream bitstream.bin
+```
+
+Print target C0-microSD+ information and verify loaded bitstreams:
+```sh
+sudo python C0_microSD_plus_toolkit.py /dev/sda info
+```
+
+Start Signaloid SoC core:
+```sh
+sudo python C0_microSD_plus_toolkit.py /dev/sda core start
+```
+
+Stop and reset Signaloid SoC core:
+```sh
+sudo python C0_microSD_plus_toolkit.py /dev/sda core stop
+```
+
+# SD-Dev utilities
 ## Using the `SD_Dev_toolkit.py` tool
 You can use the `SD_Dev_toolkit.py` to detect and power-cycle the SD cards on-board the SD-Dev.
 ```
@@ -120,12 +181,44 @@ options:
 
 [^1]: Implementing a subset of the full capabilities of the Signaloid C0 processor.
 
-## Using the `signaloid_api` module
+
+# The `signaloid_api` module
 You can use the `signaloid_api` module to build and download binaries for applications that support uncertainty-tracking on the Signaloid SoC, from Signaloid's API. This module provides both a command-line interface and a Python API for programmatic usage.
 
 For detailed documentation and examples, please see the [signaloid_api README](src/python/signaloid_api/README.md).
 
-### Quick Start
+## Error Handling
+
+The module provides consistent error handling with detailed error messages. When an error occurs, you'll see output in the following format:
+
+```
+Action: {action_name}
+Status Code: {http_status_code}
+Headers: {response_headers}
+Response Body: {error_details}
+{action_name} failed: {error_details}
+```
+
+For example, when hitting the repository limit:
+```
+Action: Repository connection
+Status Code: 403
+Headers: {'Content-Type': 'application/json', ...}
+Response Body: {
+  "error": "Forbidden",
+  "message": "Repositories limit reached. Upgrade your account at https://signaloid.io/billing."
+}
+Repository connection failed: {'error': 'Forbidden', 'message': 'Repositories limit reached. Upgrade your account at https://signaloid.io/billing.'}
+```
+
+Common error scenarios include:
+- Repository limit reached
+- Invalid API key
+- Repository not found
+- Build failures
+- Network errors
+
+## Quick Start
 
 ```bash
 # Download a binary using repository ID
@@ -138,7 +231,7 @@ python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo
 python -m src.python.signaloid_api.core_downloader --help
 ```
 
-#### Example Output
+### Example Output
 
 When using a GitHub repository URL, the tool will:
 1. Verify the repository exists and has a `src` directory

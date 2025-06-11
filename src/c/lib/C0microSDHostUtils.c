@@ -229,10 +229,10 @@ hostUtilsAssertSignaloidSoCStatus(C0microSDConfigurationStatus status)
 }
 
 void
-hostUtilsWriteSignaloidSoCMOSIBuffer(char *  device, void *  srcBuffer)
+hostUtilsWriteSignaloidSoCMOSIBuffer(char *  device, void *  sourceBuffer)
 {
 	ssize_t		res;
-	res = hostUtilsWriteToC0microSD(device, srcBuffer, kSignaloidSoCCommonConstantsMOSIBufferSizeBytes, kSignaloidSoCHostConstantsMOSIBufferOffset);
+	res = hostUtilsWriteToC0microSD(device, sourceBuffer, kSignaloidSoCCommonConstantsMOSIBufferSizeBytes, kSignaloidSoCHostConstantsMOSIBufferOffset);
 	if (res != kSignaloidSoCCommonConstantsMOSIBufferSizeBytes)
 	{	
 		exit(EXIT_FAILURE);

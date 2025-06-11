@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2024, Signaloid.
+# Copyright (c) 2025, Signaloid.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -55,10 +55,19 @@ def _handle_api_error(e: requests.exceptions.HTTPError, action: str) -> None:
     """
     try:
         error_details = e.response.json()
-        error_msg = error_details.get('error', str(e))
-        raise SignaloidAPIError(f"{action}: {error_msg}") from e
+        print(f"\nAction: {action}")
+        print(f"Status Code: {e.response.status_code}")
+        print(f"Headers: {dict(e.response.headers)}")
+        print(f"Response Body: {json.dumps(error_details, indent=2)}")
+        error_msg = f"{action} failed: {error_details}"
+        raise SignaloidAPIError(error_msg) from e
     except json.JSONDecodeError:
-        raise SignaloidAPIError(f"{action}: {e.response.text}") from e
+        print(f"\nAction: {action}")
+        print(f"Status Code: {e.response.status_code}")
+        print(f"Headers: {dict(e.response.headers)}")
+        print(f"Response Body: {e.response.text}")
+        error_msg = f"{action} failed: {e.response.text}"
+        raise SignaloidAPIError(error_msg) from e
 
 
 def create_build_from_repository(
@@ -261,6 +270,9 @@ def verify_github_repo(
         Tuple containing:
             - success (bool): Whether the verification was successful
             - message (str): Success or error message
+            
+    Raises:
+        SignaloidAPIError: If the API request fails
     """
     if verbose:
         print(f"Verifying GitHub repository: {repo_url}")
@@ -285,8 +297,9 @@ def verify_github_repo(
         response = requests.get(proxy_url, headers=headers)
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        return False, f"Repository verification failed: {str(e)}"
-
+        _handle_api_error(e, "Repository verification")
+        return False, ""  # This line will never be reached due to the raise in _handle_api_error
+    
     # Check if repository has a src directory
     contents_url = f"{base_url}/proxy/github/repos/"
     contents_url += f"{username}/{repo_name}/contents"
@@ -305,11 +318,10 @@ def verify_github_repo(
                     "'src' directory in the root")
 
     except requests.exceptions.HTTPError as e:
-        return False, f"Failed to verify repository contents: {str(e)}"
-
-    return (True,
-            f"Repository {username}/{repo_name} is valid "
-            "and has a src directory")
+        _handle_api_error(e, "Repository contents verification")
+        return False, ""  # This line will never be reached due to the raise in _handle_api_error
+    
+    return True, f"Repository {username}/{repo_name} is valid and has a src directory"
 
 
 def connect_repository_from_github(
@@ -363,14 +375,7 @@ def connect_repository_from_github(
         return repo_id
 
     except requests.exceptions.HTTPError as e:
-        try:
-            error_details = e.response.json()
-            raise SignaloidAPIError(
-                "Repository connection failed: "
-                f"{error_details.get('error', str(e))}") from e
-        except json.JSONDecodeError:
-            raise SignaloidAPIError(
-                f"Repository connection failed: {e.response.text}") from e
+        _handle_api_error(e, "Repository connection")
 
 
 def download_core(
@@ -500,6 +505,8 @@ def download_core(
                     error_out = get_build_outputs(build_id, headers, base_url)
                     print("\nBuild output:")
                     print(requests.get(error_out).text)
+                except requests.exceptions.HTTPError as e:
+                    _handle_api_error(e, "Build outputs retrieval")
                 except Exception:
                     pass
                 raise SignaloidAPIError(
@@ -535,6 +542,8 @@ def download_core(
 
         return output_file
 
+    except requests.exceptions.HTTPError as e:
+        _handle_api_error(e, "Core download")
     except Exception as e:
         raise SignaloidAPIError(str(e)) from e
 
