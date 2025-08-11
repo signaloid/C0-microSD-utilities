@@ -158,7 +158,7 @@ class C0microSDPlusInterface:
         """
         buffer = self._read(self.CONFIG_REGISTER_OFFSET, 4)
         # Unpack the buffer to get the uint32_t value
-        return struct.unpack("I", buffer)[0]  
+        return struct.unpack("I", buffer)[0]
 
     def get_config_register_unpacked(
             self) -> Tuple[bool, bool, bool, bool]:
@@ -244,14 +244,15 @@ class C0microSDPlusInterface:
         """
         buffer = self._read(self.STATUS_REGISTER_OFFSET, 4)
         # Unpack the buffer to get the uint32_t value
-        return struct.unpack("I", buffer)[0]  
+        return struct.unpack("I", buffer)[0]
 
     def calculate_command(
             self,
             command: int,
             idle_command: int = K_CALCULATE_NO_COMMAND,
             poll_sleep_time: float = 0.5,
-            skip_MMIO_buffer_read: bool = False
+            skip_MMIO_buffer_read: bool = False,
+            verbose: bool = True
     ) -> bytes:
         """
         Basic command calculation routine. This function sends a command to
@@ -268,7 +269,8 @@ class C0microSDPlusInterface:
         data_buffer = None
 
         self.set_command(command)
-        print("Waiting for calculation to finish.", end="")
+        if verbose:
+            print("Waiting for calculation to finish.", end="")
 
         while True:
             # Get status of Signaloid C0-microSD+ compute module
@@ -276,20 +278,25 @@ class C0microSDPlusInterface:
 
             if soc_status == SIGNALOID_SOC_STATUS_CALCULATING:
                 # Signaloid C0-microSD+ compute module is still calculating
-                print(".", end="")
+                if verbose:
+                    print(".", end="")
                 time.sleep(poll_sleep_time)
             elif soc_status == SIGNALOID_SOC_STATUS_DONE:
                 # Signaloid C0-microSD+ completed calculation
-                print("\n")
+                if verbose:
+                    print("\n")
                 if not skip_MMIO_buffer_read:
-                    print("Read data content...")
+                    if verbose:
+                        print("Read data content...")
                     data_buffer = self.read_MMIO_buffer()
                 break
             elif soc_status == SIGNALOID_SOC_STATUS_INVALID_COMMAND:
-                print("\nERROR: Device returned 'Unknown CMD'\n")
+                if verbose:
+                    print("\nERROR: Device returned 'Unknown CMD'\n")
                 break
             elif soc_status != SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND:
-                print("\nERROR: Device returned 'Unknown CMD'\n")
+                if verbose:
+                    print("\nERROR: Device returned 'Unknown CMD'\n")
                 break
 
         while (self.get_status()

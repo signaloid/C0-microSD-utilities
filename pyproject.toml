@@ -1,0 +1,50 @@
+[project]
+name = "signaloid-utilities"
+version = "1.0.0"
+description = ""
+authors = [
+    {name = "Signaloid", email = "info@signaloid.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "requests (>=2.32.4,<3.0.0)",
+]
+
+
+[tool.poetry]
+packages = [
+	{include = "c0microsd", from = "src/python", to = "signaloid_utilities"},
+	{include = "c0microsdplus", from = "src/python", to = "signaloid_utilities"},
+	{include = "sddev", from = "src/python", to = "signaloid_utilities"},
+	{include = "signaloid_api", from = "src/python", to = "signaloid_utilities"},
+]
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.17.0"
+flake8 = "^7.3.0"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.mypy]
+warn_unused_configs = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = [
+	"python.c0microsd.*",
+	"python.c0microsdplus.*",
+	"python.sddev.*",
+	"python.signaloid_api.*",
+]
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_unused_ignores = false
+check_untyped_defs = false
+strict_equality = false

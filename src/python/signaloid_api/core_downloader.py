@@ -34,7 +34,13 @@ AVAILABLE_CORES: Dict[str, str] = {
     "C0-microSD-XS": "cor_808bbbb9932c5d29a58370a1ec9a859f",
     "C0-microSD-XS+": "cor_3d8dfc5d4f305e16b867716fe6aba1e9",
     "C0-microSD-N": "cor_271d544c73a8544d9026252652342972",
-    "C0-microSD-N+": "cor_c1cde893b0d75bb6a8941e9caf90f2a6"
+    "C0-microSD-N+": "cor_c1cde893b0d75bb6a8941e9caf90f2a6",
+    "C0-microSD-plus-XS": "cor_fec16af93c525850a49abe6ddbe9a434",
+    "C0-microSD-plus-XS+": "cor_28cfadb7a9535ddf9dffbdeaa41b0f20",
+    "C0-microSD-plus-N": "cor_1faf6bb2d7d5522ea7fa8d0abb5f8287",
+    "C0-microSD-plus-N+": "cor_47178d2437f95276961d2b1311f6efb7",
+    "C0-microSD-plus-S": "cor_b4bca7fa91c95e17bba1c210d2485eb1",
+    "C0-microSD-plus-S+": "cor_b3d7e24ecca45da7b3752304e1230f02"
 }
 
 
@@ -57,15 +63,11 @@ def _handle_api_error(e: requests.exceptions.HTTPError, action: str) -> None:
         error_details = e.response.json()
         print(f"\nAction: {action}")
         print(f"Status Code: {e.response.status_code}")
-        print(f"Headers: {dict(e.response.headers)}")
-        print(f"Response Body: {json.dumps(error_details, indent=2)}")
         error_msg = f"{action} failed: {error_details}"
         raise SignaloidAPIError(error_msg) from e
     except json.JSONDecodeError:
         print(f"\nAction: {action}")
         print(f"Status Code: {e.response.status_code}")
-        print(f"Headers: {dict(e.response.headers)}")
-        print(f"Response Body: {e.response.text}")
         error_msg = f"{action} failed: {e.response.text}"
         raise SignaloidAPIError(error_msg) from e
 
@@ -118,7 +120,7 @@ def check_build_status(build_id: str, headers: dict, base_url: str) -> str:
         base_url: Base URL for the Signaloid API
 
     Returns:
-        str: Current status of the build
+        Tuple[str, Optional[str]]: Current status of the build and optional message
 
     Raises:
         requests.exceptions.HTTPError: If the API request fails
@@ -126,7 +128,19 @@ def check_build_status(build_id: str, headers: dict, base_url: str) -> str:
     url = f"{base_url}/builds/{build_id}"
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return response.json().get("Status", "Unknown")
+
+    build_data = response.json()
+    current_status = build_data.get("Status", "Unknown")
+
+    # Find the message for the current status in StatusTransitions
+    message = None
+    status_transitions = build_data.get("StatusTransitions", [])
+    for transition in status_transitions:
+        if transition.get("Status") == current_status:
+            message = transition.get("Message")
+            break
+
+    return current_status, message
 
 
 def get_binary_url(build_id: str, headers: dict, base_url: str) -> str:
@@ -270,7 +284,7 @@ def verify_github_repo(
         Tuple containing:
             - success (bool): Whether the verification was successful
             - message (str): Success or error message
-            
+
     Raises:
         SignaloidAPIError: If the API request fails
     """
@@ -299,7 +313,7 @@ def verify_github_repo(
     except requests.exceptions.HTTPError as e:
         _handle_api_error(e, "Repository verification")
         return False, ""  # This line will never be reached due to the raise in _handle_api_error
-    
+
     # Check if repository has a src directory
     contents_url = f"{base_url}/proxy/github/repos/"
     contents_url += f"{username}/{repo_name}/contents"
@@ -320,7 +334,7 @@ def verify_github_repo(
     except requests.exceptions.HTTPError as e:
         _handle_api_error(e, "Repository contents verification")
         return False, ""  # This line will never be reached due to the raise in _handle_api_error
-    
+
     return True, f"Repository {username}/{repo_name} is valid and has a src directory"
 
 
@@ -387,14 +401,17 @@ def download_core(
         verbose: bool = True,
         branch: Optional[str] = None,
         repo_url: Optional[str] = None) -> Path:
-    """Download a microSD core binary from Signaloid's API.
+    """Download a C0-microSD or C0-microSD+ core binary from Signaloid's API.
 
     Args:
         api_key: Signaloid API key
         repo_id: Signaloid repository ID to build from
                  (required if repo_url not provided)
         core: Core version to use (C0-microSD-XS, C0-microSD-XS+,
-              C0-microSD-N, C0-microSD-N+)
+              C0-microSD-N, C0-microSD-N+,
+              C0-microSD-plus-XS, C0-microSD-plus-XS+,
+              C0-microSD-plus-N, C0-microSD-plus-N+,
+              C0-microSD-plus-S, C0-microSD-plus-S+)
         output_path: Optional path to save the binary to
         base_url: Base URL for the Signaloid API
                  (default: https://api.signaloid.io)
@@ -488,13 +505,13 @@ def download_core(
         last_status = None
         while True:
             try:
-                status = check_build_status(build_id, headers, base_url)
+                status, message = check_build_status(build_id, headers, base_url)
             except requests.exceptions.HTTPError as e:
                 _handle_api_error(e, "Build status check")
 
             # Only print status if it changed
             if verbose and status != last_status:
-                print(f"Build status: {status}")
+                print(f"Build status: {status}, Message: {message}")
                 last_status = status
 
             if status == "Completed":
@@ -549,8 +566,8 @@ def download_core(
 
 
 def main():
-    """Command-line interface for downloading microSD core binaries."""
-    description = 'Build and download Signaloid microSD core binary.'
+    """Command-line interface for downloading Signaloid C0-microSD or C0-microSD+ core binaries."""
+    description = 'Build and download Signaloid C0-microSD or C0-microSD+ core binary.'
     parser = argparse.ArgumentParser(description=description)
 
     # Create a mutually exclusive group for repo_id and repo_url
@@ -573,7 +590,7 @@ def main():
         '--core',
         choices=AVAILABLE_CORES.keys(),
         default='C0-microSD-N',
-        help='MicroSD core version (default: C0-microSD-N for nano precision)'
+        help='C0-microSD/C0-microSD+ core version (default: C0-microSD-N for nano precision)'
     )
     parser.add_argument(
         '--output',

@@ -363,6 +363,30 @@ def handle_flash_bitstream(args):
             exit(os.EX_SOFTWARE)
 
 
+def handle_configuration(args):
+    # Create a new toolkit object
+    toolkit = C0microSDPlusToolkit(args.target_device)
+    # args.action is either "start" or "stop"
+    try:
+        if args.action == "unlock-bitstream":
+            if not confirm_action():
+                print("Aborting.")
+                exit(os.EX_USAGE)
+            toolkit.unlock_bitstream()
+        elif args.action == "lock-bitstream":
+            toolkit.lock_bitstream()
+    except Exception as e:
+        print(f"{e}\nAn error occurred, aborting.", file=sys.stderr)
+        if isinstance(e, ValueError):
+            exit(os.EX_DATAERR)
+        elif isinstance(e, FileNotFoundError):
+            exit(os.EX_NOINPUT)
+        elif isinstance(e, PermissionError):
+            exit(os.EX_NOPERM)
+        else:
+            exit(os.EX_SOFTWARE)
+
+
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Signaloid C0-microSD-plus-toolkit. "
@@ -433,6 +457,18 @@ def create_parser():
         help=("Pad input file with zeros to target size.")
     )
     p_flash_bs.set_defaults(func=handle_flash_bitstream)
+
+    # Configuration commands
+    p_configure = subparsers.add_parser(
+        "configure",
+        help="Configuration commands"
+    )
+    p_configure.add_argument(
+        "action",
+        choices=["unlock-bitstream", "lock-bitstream"],
+        help="Configuration action to perform"
+    )
+    p_configure.set_defaults(func=handle_configuration)
 
     return parser
 

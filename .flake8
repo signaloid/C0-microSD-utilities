@@ -1,0 +1,8 @@
+[flake8]
+max-complexity = 20
+max-line-length = 79
+
+extend-ignore =
+    # Let formatting take care of line length (not flake8)
+    E501
+    E203
