@@ -57,6 +57,10 @@ python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo
 python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-id YOUR_REPO_ID \
     --base-url https://api.alternate-domain.com
 
+# Specify a different build directory
+python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-id YOUR_REPO_ID \
+    --build-directory MY_SOURCE_DIRECTORY
+
 # If Python can't find the module, add the current directory to PYTHONPATH:
 PYTHONPATH=. python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-id YOUR_REPO_ID
 ```
@@ -122,8 +126,9 @@ output_file = download_core(
     core="C0-microSD-XS+",  # Core version (C0-microSD-XS, C0-microSD-XS+, C0-microSD-N, C0-microSD-N+)
     output_path=Path("output.tar.gz"),  # Custom output path
     base_url="https://api.signaloid.io",  # API endpoint (default: https://api.signaloid.io)
-    verbose=True,         # Enable/disable progress messages
-    branch="develop"      # Specific branch to build from
+    verbose=True,  # Enable/disable progress messages
+    branch="develop",  # Specific branch to build from
+    build_directory="src"  # Specific directory where build sources are located
 )
 
 # Update repository configuration
@@ -153,7 +158,7 @@ You have two options to identify your repository:
    - Format: `--repo-url https://github.com/username/repository`
    - Example: `--repo-url https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator`
    - Requirements: 
-     - Must have a `src` directory in the root
+     - Must either have a `src` directory in the root, or have specified the `--build-directory`
      - For private repositories only: You must connect your GitHub account in the Signaloid Cloud Developer Platform
      - Works with both public repositories and private repositories you have access to
 

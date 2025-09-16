@@ -39,15 +39,15 @@ class C0microSDSignaloidSoCInterfaceSDSPI(C0microSDSignaloidSoCInterface):
     """
 
     def __init__(self, spi: SPI, cs_pin: Pin, timeout: int, force_transactions: bool = False) -> None:
-        super().__init__(
-            target_device="",
-            force_transactions=force_transactions
-        )
-
         self.sd: SDOverSPI = SDOverSPI(
             spi=spi,
             cs_pin=cs_pin,
             timeout=timeout
+        )
+
+        super().__init__(
+            target_device="",
+            force_transactions=force_transactions
         )
 
     def _read(self, offset: int, bytes: int) -> bytes:
