@@ -400,7 +400,8 @@ def download_core(
         base_url: str = "https://api.signaloid.io",
         verbose: bool = True,
         branch: Optional[str] = None,
-        repo_url: Optional[str] = None) -> Path:
+        repo_url: Optional[str] = None,
+        build_directory: Optional[str] = None) -> Path:
     """Download a C0-microSD or C0-microSD+ core binary from Signaloid's API.
 
     Args:
@@ -431,6 +432,11 @@ def download_core(
     if repo_id is None and repo_url is None:
         raise ValueError("Either repo_id or repo_url must be provided")
 
+    if core not in AVAILABLE_CORES:
+        core_list = ', '.join(AVAILABLE_CORES.keys())
+        raise ValueError(
+            f"Invalid core version. Must be one of: {core_list}")
+
     # If repo_url is provided but repo_id is not, connect a repository
     # from the URL
     if repo_id is None and repo_url is not None:
@@ -451,11 +457,6 @@ def download_core(
         # Connect the repository to Signaloid
         repo_id = connect_repository_from_github(
             repo_url, headers, base_url, branch, verbose)
-
-    if core not in AVAILABLE_CORES:
-        core_list = ', '.join(AVAILABLE_CORES.keys())
-        raise ValueError(
-            f"Invalid core version. Must be one of: {core_list}")
 
     if verbose:
         is_default = " (default)" if core == 'C0-microSD-N' else ""
@@ -488,6 +489,9 @@ def download_core(
             print(f"Creating build for repository {repo_id} "
                   f"with {core}{branch_info}...")
         try:
+            if build_directory is not None:
+                update_repository(repo_id, headers, base_url, build_directory=build_directory)
+
             build_id = create_build_from_repository(
                 repo_id,
                 core_id,
@@ -612,6 +616,11 @@ def main():
         help='Base URL for the Signaloid API '
         '(default: https://api.signaloid.io)'
     )
+    parser.add_argument(
+        '--build-directory',
+        default='src',
+        help='Directory containing the build files (default: src)'
+    )
 
     args = parser.parse_args()
 
@@ -624,7 +633,8 @@ def main():
             base_url=args.base_url,
             verbose=not args.quiet,
             branch=args.branch,
-            repo_url=args.repo_url
+            repo_url=args.repo_url,
+            build_directory=args.build_directory
         )
     except (SignaloidAPIError, ValueError) as e:
         print(f"{str(e)}", file=sys.stderr)

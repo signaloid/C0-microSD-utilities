@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2025, Signaloid.
+# Copyright (c) 2024, Signaloid.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,6 @@
 
 import struct
 import time
-from typing import Union
 from .constants import SOC_CONSTANTS
 
 SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND = 0
@@ -214,7 +213,7 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
 
     def read_signaloid_soc_MISO_buffer(
         self,
-        size: Union[int, None] = None
+        size: int | None = None
     ) -> bytes:
         """
         Reads data from the C0-microSD MISO buffer.
