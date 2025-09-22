@@ -22,6 +22,14 @@
 
 import struct
 import time
+
+# Try importing the typing module when using this script with Python.
+# CircuitPython does not support the typing module, so just ignore the import.
+try:
+    from typing import Optional
+except:
+    pass
+
 from .constants import SOC_CONSTANTS
 
 SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND = 0
@@ -213,7 +221,7 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
 
     def read_signaloid_soc_MISO_buffer(
         self,
-        size: int | None = None
+        size: Optional[int] = None
     ) -> bytes:
         """
         Reads data from the C0-microSD MISO buffer.
