@@ -617,11 +617,8 @@ def main():
                       "Bootloader bitstream from Signaloid. Visit "
                       "https://github.com/signaloid/C0-microSD-Hardware "
                       "to get the latest Bootloader bitstream")
-                if (args.force_flash):
-                    print("Flashing bitstream (used -f argument)")
-                else:
-                    print("Aborting.")
-                    exit(os.EX_USAGE)
+                print("Aborting.")
+                exit(os.EX_USAGE)
 
             if not confirm_action():
                 print("Aborting.")
@@ -647,11 +644,8 @@ def main():
                       "Signaloid SoC bitstream from Signaloid. Visit "
                       "https://github.com/signaloid/C0-microSD-Hardware "
                       "to get the latest Signaloid SoC bitstream")
-                if (args.force_flash):
-                    print("Flashing bitstream (used -f argument)")
-                else:
-                    print("Aborting.")
-                    exit(os.EX_USAGE)
+                print("Aborting.")
+                exit(os.EX_USAGE)
 
             if not confirm_action():
                 print("Aborting.")
