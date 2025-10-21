@@ -247,7 +247,7 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
         :param value: The uint32_t value to write
         """
         # Pack the uint32_t value into a 4-byte buffer and send it
-        self._write(self.COMMAND_REGISTER_OFFSET, struct.pack("I", value))
+        self._write(self.COMMAND_REGISTER_OFFSET, struct.pack("<I", value))
 
     def get_signaloid_soc_status(self) -> int:
         """
@@ -256,9 +256,8 @@ class C0microSDSignaloidSoCInterface(C0microSDInterface):
         :return: The read uint32_t value
         """
         buffer = self._read(self.STATUS_REGISTER_OFFSET, 4)
-        return struct.unpack("I", buffer)[
-            0
-        ]  # Unpack the buffer to get the uint32_t value
+        # Unpack the buffer to get the uint32_t value
+        return struct.unpack("<I", buffer)[0]
 
     def calculate_command(
             self,

@@ -148,7 +148,7 @@ class C0microSDPlusInterface:
         :param value: The uint32_t value to write
         """
         # Pack the uint32_t value into a 4-byte buffer and send it
-        self._write(self.CONFIG_REGISTER_OFFSET, struct.pack("I", value))
+        self._write(self.CONFIG_REGISTER_OFFSET, struct.pack("<I", value))
 
     def get_config_register(self) -> int:
         """
@@ -158,7 +158,7 @@ class C0microSDPlusInterface:
         """
         buffer = self._read(self.CONFIG_REGISTER_OFFSET, 4)
         # Unpack the buffer to get the uint32_t value
-        return struct.unpack("I", buffer)[0]
+        return struct.unpack("<I", buffer)[0]
 
     def get_config_register_unpacked(
             self) -> Tuple[bool, bool, bool, bool]:
@@ -215,7 +215,7 @@ class C0microSDPlusInterface:
         :param value: The uint32_t value to write
         """
         # Pack the uint32_t value into a 4-byte buffer and send it
-        self._write(self.BOOT_ADDRESS_REGISTER_OFFSET, struct.pack("I", value))
+        self._write(self.BOOT_ADDRESS_REGISTER_OFFSET, struct.pack("<I", value))
 
     def get_boot_address(self) -> int:
         """
@@ -225,7 +225,7 @@ class C0microSDPlusInterface:
         """
         buffer = self._read(self.BOOT_ADDRESS_REGISTER_OFFSET, 4)
         # Unpack the buffer to get the uint32_t value
-        return struct.unpack("I", buffer)[0]
+        return struct.unpack("<I", buffer)[0]
 
     def set_command(self, value: int) -> None:
         """
@@ -234,7 +234,7 @@ class C0microSDPlusInterface:
         :param value: The uint32_t value to write
         """
         # Pack the uint32_t value into a 4-byte buffer and send it
-        self._write(self.COMMAND_REGISTER_OFFSET, struct.pack("I", value))
+        self._write(self.COMMAND_REGISTER_OFFSET, struct.pack("<I", value))
 
     def get_status(self) -> int:
         """
@@ -244,7 +244,7 @@ class C0microSDPlusInterface:
         """
         buffer = self._read(self.STATUS_REGISTER_OFFSET, 4)
         # Unpack the buffer to get the uint32_t value
-        return struct.unpack("I", buffer)[0]
+        return struct.unpack("<I", buffer)[0]
 
     def calculate_command(
             self,
