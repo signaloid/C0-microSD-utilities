@@ -1,0 +1,49 @@
+.globl	_init
+.globl	__errno
+.align	4
+
+.section .text.unlikely
+
+_init:
+.option push
+.option norelax
+	# Set status register to "currently booting" status
+	li	t0, 0x00002000
+	csrrs	zero, mstatus, t0
+
+	# Initialize stack pointer
+	li	sp, 0x81050000
+	la	gp, __global_pointer$
+
+.option pop
+	# Clear the bss segment
+	la      a0, _edata
+	la      a2, _end
+	sub     a2, a2, a0
+	li      a1, 0
+	call    memset
+
+	# Save context to context-switch to _start
+	# Push a0 and a1 in the stack to save argc and argv of main
+	addi    sp,sp,-8
+	sw      a0,4(sp)
+	sw      a1,0(sp)
+
+	# Call initialization function
+	call	_start
+
+	# Reload context to context-switch to main
+	# Pop a0 and a1 in the stack to save argc and argv of main
+	lw      a0,4(sp)
+	lw      a1,0(sp)
+	addi    sp,sp,8
+
+	# Call main function
+	call	main
+	call	exit
+
+errnoValue:	.word 0
+
+__errno:
+	la	a0, errnoValue
+	ret

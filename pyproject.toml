@@ -1,23 +1,21 @@
 [project]
 name = "signaloid-utilities"
-version = "1.3.3"
+version = "2.8.0"
 description = ""
 authors = [
     {name = "Signaloid", email = "info@signaloid.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10"
 dependencies = [
     "requests (>=2.33,<3.0.0)",
+    "urllib3 (>=2.7.0,<3)",
 ]
 
 
 [tool.poetry]
 packages = [
-	{include = "c0microsd", from = "src/python", to = "signaloid_utilities"},
-	{include = "c0microsdplus", from = "src/python", to = "signaloid_utilities"},
-	{include = "sddev", from = "src/python", to = "signaloid_utilities"},
-	{include = "signaloid_api", from = "src/python", to = "signaloid_utilities"},
+	{include = "signaloid_utilities", from = "src/python"},
 ]
 
 
@@ -37,10 +35,10 @@ strict = true
 
 [[tool.mypy.overrides]]
 module = [
-	"python.c0microsd.*",
-	"python.c0microsdplus.*",
-	"python.sddev.*",
-	"python.signaloid_api.*",
+	"signaloid_utilities.c0microsd.*",
+	"signaloid_utilities.c0sd.*",
+	"signaloid_utilities.sddev.*",
+	"signaloid_utilities.signaloid_api.*",
 ]
 disallow_untyped_calls = false
 disallow_untyped_defs = false
