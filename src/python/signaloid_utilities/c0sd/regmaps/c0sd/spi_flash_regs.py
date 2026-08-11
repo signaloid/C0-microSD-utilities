@@ -10,5 +10,5 @@ class SpiFlash:
         SIZE_BYTES = 0x200000
     class UserData:
         BOTTOM_ENTRY = 0x200000
-        TOP_ENTRY = 0xfffffc
-        SIZE_BYTES = 0xe00000
+        TOP_ENTRY = 0x3fffffc
+        SIZE_BYTES = 0x3e00000

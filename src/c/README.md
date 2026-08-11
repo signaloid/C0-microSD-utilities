@@ -34,20 +34,5 @@ src/c/
     C0<variant>/HostUtils.c .... host-side helper implementation.
   regmaps/
     C0<variant>/ ............... auto-generated register maps for the variant.
-  common/ ...................... per-variant startup (init-pro.S, startup.cpp) and
-                                 linker scripts.
-  Makefile ..................... selects the variant via DEVICE_TYPE and compiles the
-                                 matching HAL source through HAL_SRC.
 ```
-
-## How the HAL selects a variant
-
-Application code includes only `C0HAL.h`. The build defines `BUILD_FOR` (from
-`DEVICE_TYPE` in the `Makefile`) to one of the identifiers in
-`SignaloidBuildTargets.h`. `C0HAL.h` then includes the matching
-`C0<variant>/HAL.h`, and the `Makefile` compiles the matching
-`src/C0<variant>/HAL.c`.
-
-Everything for one variant is therefore self-contained under its `C0<variant>/`
-folders (`include/`, `src/`, `lib/`, `regmaps/`).
 

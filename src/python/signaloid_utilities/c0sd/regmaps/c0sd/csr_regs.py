@@ -3,9 +3,9 @@
 
 
 class Csr:
-    BASE_ADDR = 0x1100000
+    BASE_ADDR = 0x10000000
     class Command:
-        ADDR = 0x1100000
+        ADDR = 0x10000000
         class Command:
             LSB = 0
             MSB = 31
@@ -23,7 +23,7 @@ class Csr:
             reg_val |= (f_command & 0xffffffff) << 0
             return reg_val
     class Config:
-        ADDR = 0x1104000
+        ADDR = 0x10004000
         class Rstn:
             LSB = 0
             MSB = 0
@@ -77,7 +77,7 @@ class Csr:
             reg_val |= (f_reserved & 0x3ffffff) << 6
             return reg_val
     class Status:
-        ADDR = 0x1108000
+        ADDR = 0x10008000
         class Status:
             LSB = 0
             MSB = 31
@@ -95,7 +95,7 @@ class Csr:
             reg_val |= (f_status & 0xffffffff) << 0
             return reg_val
     class SdConfig:
-        ADDR = 0x110c000
+        ADDR = 0x1000c000
         class ForceWriteCrcOk:
             LSB = 0
             MSB = 0
@@ -155,7 +155,7 @@ class Csr:
             reg_val |= (f_reserved_3 & 0x7f) << 25
             return reg_val
     class TrapMcause:
-        ADDR = 0x1110000
+        ADDR = 0x10010000
         class TrapMcause:
             LSB = 0
             MSB = 31
@@ -173,7 +173,7 @@ class Csr:
             reg_val |= (f_trap_mcause & 0xffffffff) << 0
             return reg_val
     class TrapMepc:
-        ADDR = 0x1110004
+        ADDR = 0x10010004
         class TrapMepc:
             LSB = 0
             MSB = 31
@@ -191,7 +191,7 @@ class Csr:
             reg_val |= (f_trap_mepc & 0xffffffff) << 0
             return reg_val
     class TrapMtval:
-        ADDR = 0x1110008
+        ADDR = 0x10010008
         class TrapMtval:
             LSB = 0
             MSB = 31

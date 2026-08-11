@@ -7,15 +7,28 @@
 
 
 uint32_t
+getTopFlashOtpEntry(uint32_t offset)
+{
+	return *(volatile uint32_t *)(0x8000000 + offset);
+}
+
+void
+setTopFlashOtpEntry(uint32_t offset, uint32_t *  value)
+{
+	*(volatile uint32_t *)(0x8000000 + offset) = *value;
+}
+
+
+uint32_t
 getTopLramEntry(uint32_t offset)
 {
-	return *(volatile uint32_t *)(0x1000000 + offset);
+	return *(volatile uint32_t *)(0x8100000 + offset);
 }
 
 void
 setTopLramEntry(uint32_t offset, uint32_t *  value)
 {
-	*(volatile uint32_t *)(0x1000000 + offset) = *value;
+	*(volatile uint32_t *)(0x8100000 + offset) = *value;
 }
 
 
@@ -23,12 +36,12 @@ setTopLramEntry(uint32_t offset, uint32_t *  value)
 uint32_t
 getTopIoBuffEntry(uint32_t offset)
 {
-	return *(volatile uint32_t *)(0x1200000 + offset);
+	return *(volatile uint32_t *)(0x8300000 + offset);
 }
 
 void
 setTopIoBuffEntry(uint32_t offset, uint32_t *  value)
 {
-	*(volatile uint32_t *)(0x1200000 + offset) = *value;
+	*(volatile uint32_t *)(0x8300000 + offset) = *value;
 }
 

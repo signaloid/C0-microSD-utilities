@@ -23,8 +23,6 @@
 import argparse
 import sys
 import os
-import json
-import binascii
 import re
 from typing import Optional, Tuple
 
@@ -33,6 +31,9 @@ sys.path.insert(0, str(Path(__file__).parent / "src" / "python"))
 
 from signaloid_utilities.c0microsd.interface import C0microSDInterface
 from signaloid_utilities.c0microsd.constants import BOOTLOADER_CONSTANTS
+from signaloid_utilities.common.bitstream_prefix import (
+    find_json_object,
+)
 
 APP_VERSION = "2.0"  # Application version
 MAX_FLASH_ATTEMPTS = 5  # Maximum flashing attempts
@@ -203,33 +204,14 @@ class C0microSDToolkit(C0microSDInterface):
         return False
 
     def find_json_string(self, data: bytes) -> Optional[dict]:
-        #
-        #    Attempts to decode the first valid JSON string from a byte stream
-        #    Assumes input is <= 4 KB and encoded in ASCII
-        #
-        try:
-            ascii_str = data.decode('ascii', errors='ignore')
-        except Exception as e:
-            raise ValueError(f"Prefix decoding failed: {e}")
+        """
+        Attempts to decode the first valid JSON object from a byte stream.
+        Assumes input is <= 4 KB and encoded in ASCII.
 
-        brace_stack = []
-        stack_index = -1
-
-        for i, ch in enumerate(ascii_str):
-            if ch == '{':
-                if not brace_stack:
-                    stack_index = i
-                brace_stack.append('{')
-            elif ch == '}':
-                if brace_stack:
-                    brace_stack.pop()
-                    if not brace_stack and stack_index != -1:
-                        candidate = ascii_str[stack_index:i+1]
-                        try:
-                            return json.loads(candidate)
-                        except json.JSONDecodeError:
-                            pass    # Not a valid JSON object, continue search
-        return None
+        Kept for backwards compatibility; delegates to
+        :meth:`C0microSDInterface.find_json_string`.
+        """
+        return super().find_json_string(data)
 
     def get_bitstream_prefix(
             self,
@@ -237,37 +219,12 @@ class C0microSDToolkit(C0microSDInterface):
         """
         Reads the prefix section of a bitstream
 
-        :param offset: Offset of bitstream in flash memory
+        Kept for backwards compatibility; delegates to
+        :meth:`C0microSDInterface.get_bitstream_prefix`.
+
+        :param bitstream_offset: Offset of bitstream in flash memory
         """
-
-        # We assume that the prefix is never going to be larger than 4K
-        self.get_status()
-        prefix_chunk = self._read(bitstream_offset, 4096)
-
-        # Decode prefix chunk to find prefix
-        prefix = self.find_json_string(prefix_chunk)
-
-        if (prefix is None):
-            raise ValueError("Could not find bitstream prefix section.")
-
-        try:
-            major_bitstream_version = int(str(prefix["v"]).split(".")[0])
-        except Exception:
-            major_bitstream_version = 1
-
-        # Use the bitstream version to know exactly how to
-        # find start and end of prefix. This is required to calculate
-        # the CRC
-        prefix_start_word = \
-            BOOTLOADER_CONSTANTS[major_bitstream_version].kBitstreamPrefixStart
-        prefix_end_word = \
-            BOOTLOADER_CONSTANTS[major_bitstream_version].kBitstreamPrefixEnd
-
-        prefix_start = prefix_chunk.find(prefix_start_word)
-        prefix_end = prefix_chunk.find(prefix_end_word, prefix_start)
-        prefix_end += len(prefix_end_word)
-
-        return prefix, prefix_start, prefix_end
+        return super().get_bitstream_prefix(bitstream_offset)
 
     def verify_bitstream_crc(
             self,
@@ -279,19 +236,19 @@ class C0microSDToolkit(C0microSDInterface):
         """
         Verifies a the crc32 checksum of a bitstream
 
+        Kept for backwards compatibility; delegates to
+        :meth:`C0microSDInterface.verify_bitstream_crc`.
+
         :param bitstream_offset: Offset of bitstream in flash memory
         :param bitstream_crc: Expected crc of bitstream
         :param bitstream_size: Expected size of bitstream in bytes
         """
-
-        bitstream = self._read(
-            bitstream_offset, bitstream_prefix_size + bitstream_size
+        return super().verify_bitstream_crc(
+            bitstream_offset,
+            bitstream_crc,
+            bitstream_prefix_size,
+            bitstream_size
         )
-
-        bitstream_data = bitstream[bitstream_prefix_size:]
-        actual_crc = binascii.crc32(bitstream_data) & 0xFFFFFFFF
-
-        return actual_crc == bitstream_crc
 
     def print_bitstream_information(self, offset) -> None:
         """
@@ -299,39 +256,12 @@ class C0microSDToolkit(C0microSDInterface):
         device. Also runs crc verification if prefix is in json format and
         includes `bitstream_crc` and `bitstream_size` attributes
 
-        :param bitstream_offset: Offset of bitstream in flash memory
-        :param bitstream_crc: Expected crc of bitstream
-        :param bitstream_size: Expected size of bitstream in bytes
+        Kept for backwards compatibility; delegates to
+        :meth:`C0microSDInterface.print_bitstream_information`.
+
+        :param offset: Offset of bitstream in flash memory
         """
-
-        prefix, _, prefix_end = self.get_bitstream_prefix(offset)
-        print("    Bitstream prefix section: "
-              f"{json.dumps(prefix, separators=(', ', ': '))}")
-
-        try:
-            if "bitstream_crc" in prefix:
-                bitstream_crc = prefix["bitstream_crc"]
-            elif "crc" in prefix:
-                bitstream_crc = prefix["crc"]
-
-            if "bitstream_size" in prefix:
-                bitstream_size = prefix["bitstream_size"]
-            elif "size" in prefix:
-                bitstream_size = prefix["size"]
-
-            crc_pass = self.verify_bitstream_crc(
-                offset,
-                bitstream_crc,
-                prefix_end,
-                bitstream_size
-            )
-
-            if crc_pass:
-                print("    Bitstream CRC verification: PASS")
-            else:
-                print("    Bitstream CRC verification: FAIL")
-        except Exception:
-            print("    Unable to parse prefix for CRC verification")
+        return super().print_bitstream_information(offset)
 
     def verify_warmboot_section(self, template: Optional[str] = None) -> bool:
         warmboot_section = self._read(0, 5*32).hex()
@@ -627,7 +557,7 @@ def main(explicit_args: list[str] | None = None):
 
         if args.flash_bootloader:
             # Make sure the user is flashing a bootloader bitstream
-            bitstream_prefix = toolkit.find_json_string(file_data[:4096])
+            bitstream_prefix = find_json_object(file_data[:4096])
             if (
                 (bitstream_prefix is None) or
                 ("type" not in bitstream_prefix) or
@@ -654,7 +584,7 @@ def main(explicit_args: list[str] | None = None):
 
         elif args.flash_signaloid_soc:
             # Make sure the user is flashing an soc bitstream
-            bitstream_prefix = toolkit.find_json_string(file_data[:4096])
+            bitstream_prefix = find_json_object(file_data[:4096])
             if (
                 (bitstream_prefix is None) or
                 ("type" not in bitstream_prefix) or

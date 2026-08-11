@@ -24,9 +24,8 @@ import argparse
 import sys
 import os
 import json
-import binascii
 import re
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src" / "python"))
@@ -38,8 +37,19 @@ from signaloid_utilities.c0sd.interface import (
     UnsupportedConfigureAction,
 )
 
-APP_VERSION = "2.1"  # Application version
+APP_VERSION = "2.3"  # Application version
 MAX_FLASH_ATTEMPTS = 5  # Maximum flashing attempts
+
+# Known bitstream-metadata keys and their display labels, in print order.
+# Any keys not listed here are printed generically after these.
+BITSTREAM_METADATA_LABELS = [
+    ("compute_module_type", "Compute module type"),
+    ("bitstream_creation_date", "Creation date"),
+    ("type", "Bitstream type"),
+    ("v", "Metadata schema"),
+    ("bitstream_size", "Bitstream size"),
+    ("bitstream_crc", "Bitstream CRC"),
+]
 
 
 class _C0SDToolkitMixin:
@@ -78,67 +88,84 @@ class _C0SDToolkitMixin:
                 print("Error: The data do not match.")
         return False
 
-    def get_bitstream_prefix(self, bitstream_offset: int) -> bytes:
-        prefix_chunk = self._read(bitstream_offset, 4096)
+    def print_bitstream_information(
+        self, offset, raw: bool = False, verify: bool = False
+    ) -> Optional[dict[str, Any]]:
+        """Decode and print the bitstream metadata; optionally CRC-verify.
 
-        prefix_start_word = b'\xFF\x00'
-        prefix_end_word = b'\x00\xFF'
-
-        prefix_start = prefix_chunk.find(prefix_start_word)
-        prefix_end = prefix_chunk.find(prefix_end_word, prefix_start)
-
-        if prefix_start == -1 or prefix_end == -1:
-            raise ValueError("Could not find bitstream prefix section.")
-
-        prefix_end += len(prefix_end_word)
-
-        prefix_data = prefix_chunk[
-            prefix_start + len(prefix_start_word):
-            prefix_end - len(prefix_end_word)
-        ]
-
-        return prefix_data
-
-    def verify_bitstream_crc(
-            self,
-            bitstream_offset: int,
-            bitstream_crc: int,
-            bitstream_prefix_size: int,
-            bitstream_size: int
-    ) -> bool:
-        bitstream = self._read(
-            bitstream_offset, bitstream_prefix_size + bitstream_size
-        )
-
-        bitstream_data = bitstream[bitstream_prefix_size:]
-        actual_crc = binascii.crc32(bitstream_data) & 0xFFFFFFFF
-
-        return actual_crc == bitstream_crc
-
-    def print_bitstream_information(self, offset) -> None:
-        bitstream_prefix_data = self.get_bitstream_prefix(offset)
-
-        bitstream_prefix_string = bitstream_prefix_data.decode('utf-8')
-
-        print(f"    Bitstream prefix section: {bitstream_prefix_string}")
-
+        Delegates reading/decoding to the interface (read_bitstream_metadata
+        / verify_bitstream_crc) and handles only presentation here. CRC
+        verification runs only when ``verify`` is set: the default device
+        configuration exposes just the first 4 KiB of flash and locks the
+        rest, so verification must unlock the bitstream section, read it,
+        and re-lock it. Returns the decoded metadata dict, or None if the
+        bitstream carries no Signaloid metadata prefix.
+        """
         try:
-            prefix_json = json.loads(bitstream_prefix_string)
-            bitstream_crc = prefix_json["bitstream_crc"]
-            bitstream_size = prefix_json["bitstream_size"]
-            crc_pass = self.verify_bitstream_crc(
-                offset,
-                bitstream_crc,
-                len(bitstream_prefix_data) + 4,
-                bitstream_size
-            )
+            meta = self.read_bitstream_metadata(offset)
+        except ValueError:
+            print("    No Signaloid metadata found in bitstream prefix.")
+            return None
 
-            if crc_pass:
+        if raw:
+            print(
+                "    Bitstream prefix section: "
+                f"{json.dumps(meta, separators=(', ', ': '))}"
+            )
+        else:
+            self._print_bitstream_metadata(meta)
+
+        if verify:
+            self._verify_and_report(offset, meta)
+        else:
+            print(
+                "    Bitstream CRC verification: skipped "
+                "(pass --verify to unlock and check)"
+            )
+        return meta
+
+    def _verify_and_report(self, offset, meta) -> None:
+        """Unlock the bitstream section, verify its CRC, print the result,
+        then re-lock the section.
+
+        The default device configuration exposes only the first 4 KiB of
+        flash and locks the rest, so the CRC-covered payload is unreadable
+        until the bitstream section is unlocked. The section is always
+        re-locked afterwards, even if verification fails or errors.
+        """
+        print("    Unlocking bitstream section...")
+        self.apply_configure_action("unlock-bitstream", lambda: True)
+        try:
+            crc_pass = self.verify_bitstream_crc(offset, meta)
+            if crc_pass is None:
+                print(
+                    "    Bitstream CRC verification: "
+                    "unable to verify (no CRC field)"
+                )
+            elif crc_pass:
                 print("    Bitstream CRC verification: PASS")
             else:
                 print("    Bitstream CRC verification: FAIL")
-        except ValueError or KeyError:
-            print("    Unable to parse prefix for CRC verification")
+        finally:
+            print("    Re-locking bitstream section...")
+            self.apply_configure_action("lock-bitstream", lambda: True)
+
+    def _print_bitstream_metadata(self, meta: dict[str, Any]) -> None:
+        """Print known metadata fields with friendly labels, then any
+        remaining keys generically, in the 4-space-indented style."""
+        shown = set()
+        for key, label in BITSTREAM_METADATA_LABELS:
+            if key in meta:
+                value = meta[key]
+                if key == "bitstream_crc" and isinstance(value, int):
+                    value = f"0x{value:08X}"
+                elif key == "bitstream_size":
+                    value = f"{value} bytes"
+                print(f"    {label}: {value}")
+                shown.add(key)
+        for key, value in meta.items():
+            if key not in shown:
+                print(f"    {key}: {value}")
 
 
 class C0microSDPlusToolkit(_C0SDToolkitMixin, C0microSDPlusInterface):
@@ -159,14 +186,95 @@ def _toolkit_cls_for(variant: str) -> Type[C0SDBaseInterface]:
     return TOOLKIT_BY_VARIANT[variant]
 
 
-def _make_toolkit(args) -> C0SDBaseInterface:
-    """Construct the toolkit for the selected variant.
+# Any variant works to read the metadata prefix: it lives at the same
+# offset (and within the first 4 KiB, which stays readable even when the
+# bitstream section is locked) on every variant.
+_PROBE_VARIANT = "C0-microSD+"
 
-    Forwards ``--regmap-path`` to the variant interface's ``regmap_path``
-    so the offsets are sourced from the given regmap package directory
-    (or the built-in regmaps when it is None).
+
+def _detect_variant(
+    target_device: str, regmap_path: Optional[str]
+) -> Optional[str]:
+    """Identify the compute module from the device's bitstream prefix.
+
+    Reads ``compute_module_type`` from the on-device bitstream metadata via
+    a short-lived probe interface (closed before returning, so it never
+    overlaps the real toolkit).
+
+    Returns the matching variant name, or None when the device is readable
+    but carries no identifiable Signaloid metadata (missing framing, no
+    JSON prefix, or an unknown value). Genuine device-access errors
+    (PermissionError, FileNotFoundError, OSError, ...) propagate so the caller 
+    surfaces the real cause and exit code.
     """
-    return _toolkit_cls_for(args.variant)(
+    probe = _toolkit_cls_for(_PROBE_VARIANT)(
+        target_device, regmap_path=regmap_path
+    )
+    try:
+        meta = probe.read_bitstream_metadata(probe.BITSTREAM_OFFSET)
+    except ValueError:
+        # Device is readable but has no decodable Signaloid metadata.
+        return None
+    finally:
+        try:
+            probe.device.close()
+        except Exception:
+            pass
+    # `meta` is the fully-decoded JSON object; the variant is looked up by
+    # key, never by byte offset, so detection is independent of the order
+    # or position of fields (future bitstream revisions may reorder keys).
+    declared = meta.get("compute_module_type")
+    return declared if declared in TOOLKIT_BY_VARIANT else None
+
+
+def _resolve_variant(args) -> str:
+    """Resolve the target variant, auto-detecting it when --variant is
+    omitted.
+
+    - --variant omitted + detected   -> use the detected variant.
+    - --variant omitted + undetected -> error asking for --variant.
+    - --variant given                -> use it (override), warning on a
+      detected mismatch or when detection was not possible.
+
+    Detection messages go to stderr so stdout stays clean for command
+    output.
+    """
+    detected = _detect_variant(args.target_device, args.regmap_path)
+
+    if args.variant is None:
+        if detected is None:
+            raise ValueError(
+                "Could not identify the compute module from the device's "
+                "bitstream. Re-run with --variant {C0-microSD+,C0-SD}."
+            )
+        print(f"Detected compute module: {detected}")
+        return detected
+
+    if detected is None:
+        print(
+            "Warning: could not identify the compute module from the "
+            f"device's bitstream to confirm --variant '{args.variant}'; "
+            f"proceeding as '{args.variant}'.",
+        )
+    elif detected != args.variant:
+        print(
+            f"Warning: --variant is '{args.variant}' but the device's "
+            f"bitstream declares '{detected}'; proceeding as "
+            f"'{args.variant}'.",
+        )
+    return args.variant
+
+
+def _make_toolkit(args) -> C0SDBaseInterface:
+    """Construct the toolkit for the resolved variant.
+
+    The variant is auto-detected from the device when ``--variant`` is
+    omitted (see ``_resolve_variant``). ``--regmap-path`` is forwarded to
+    the variant interface so offsets are sourced from that regmap package
+    (or the built-in regmaps when None).
+    """
+    variant = _resolve_variant(args)
+    return _toolkit_cls_for(variant)(
         args.target_device, regmap_path=args.regmap_path
     )
 
@@ -250,7 +358,9 @@ def handle_info(args):
     try:
         toolkit = _make_toolkit(args)
         print("Reading bitstream:")
-        toolkit.print_bitstream_information(toolkit.BITSTREAM_OFFSET)
+        toolkit.print_bitstream_information(
+            toolkit.BITSTREAM_OFFSET, raw=args.raw, verify=args.verify
+        )
         print("Done.")
         exit(os.EX_OK)
     except Exception as e:
@@ -314,7 +424,8 @@ def handle_configuration(args):
 # help epilog so a single `--help` lists every capability of the tool.
 _COMMAND_DESCRIPTIONS: list[tuple[str, str]] = [
     ("info",
-     "Print device info and run bitstream CRC verification."),
+     "Decode and print bitstream metadata (CRC verification with "
+     "--verify, which unlocks/re-locks the bitstream section)."),
     ("status",
      "Print the COMMAND, CONFIG and STATUS registers "
      "(plus SD_CONFIG where present)."),
@@ -389,8 +500,9 @@ def create_parser(selected_variant: Optional[str] = None):
     parser.add_argument(
         "--variant",
         choices=["C0-microSD+", "C0-SD"],
-        default="C0-microSD+",
-        help="Hardware variant (default: C0-microSD+)"
+        default=None,
+        help="Hardware variant. Default: auto-detect from the device's "
+             "bitstream; required if it cannot be identified."
     )
 
     parser.add_argument(
@@ -408,7 +520,19 @@ def create_parser(selected_variant: Optional[str] = None):
 
     p_info = subparsers.add_parser(
         "info",
-        help="Print target device info and run bitstream verification."
+        help="Print target device info and bitstream metadata."
+    )
+    p_info.add_argument(
+        "--raw",
+        action="store_true",
+        help="Print the raw JSON metadata object instead of labelled fields."
+    )
+    p_info.add_argument(
+        "--verify",
+        action="store_true",
+        help="Unlock the bitstream section, verify its CRC, then re-lock it "
+             "(off by default; the locked device exposes only the first "
+             "4 KiB of flash)."
     )
     p_info.set_defaults(func=handle_info)
 

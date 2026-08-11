@@ -12,11 +12,6 @@ uint32_t	getSpiFlashBitstreamEntry(uint32_t offset);
 void	setSpiFlashBitstreamEntry(uint32_t offset, uint32_t *  value);
 
 
-uint32_t	getSpiFlashBootloaderEntry(uint32_t offset);
-
-void	setSpiFlashBootloaderEntry(uint32_t offset, uint32_t *  value);
-
-
 uint32_t	getSpiFlashUserDataEntry(uint32_t offset);
 
 void	setSpiFlashUserDataEntry(uint32_t offset, uint32_t *  value);

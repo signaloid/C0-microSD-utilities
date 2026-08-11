@@ -8,7 +8,7 @@ void
 getCsrCommand(
 	uint32_t *	command)
 {
-	uint32_t reg_val = *(volatile uint32_t *)(0x1100000);
+	uint32_t reg_val = *(volatile uint32_t *)(0x8200000);
 	*command= (uint32_t)((reg_val >> 0) & 0xffffffff);
 }
 void
@@ -18,7 +18,7 @@ setCsrCommand(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*command & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x1100000) = reg_val;
+	*(volatile uint32_t *)(0x8200000) = reg_val;
 }
 
 void
@@ -35,7 +35,7 @@ getCsrConfig(
 	bool *		debug_pin_2,
 	uint32_t *	reserved)
 {
-	uint32_t reg_val = *(volatile uint32_t *)(0x1104000);
+	uint32_t reg_val = *(volatile uint32_t *)(0x8204000);
 	*rstn= (bool)((reg_val >> 0) & 0x1);
 	*unlock_bitstream_section= (bool)((reg_val >> 1) & 0x1);
 	*sw_led_enable= (bool)((reg_val >> 2) & 0x1);
@@ -75,14 +75,14 @@ setCsrConfig(
 	reg_val |= ((uint32_t)*debug_pin_2 & 0x1) << 9;
 	reg_val |= ((uint32_t)*reserved & 0x3fffff) << 10;
 
-	*(volatile uint32_t *)(0x1104000) = reg_val;
+	*(volatile uint32_t *)(0x8204000) = reg_val;
 }
 
 void
 getCsrStatus(
 	uint32_t *	status)
 {
-	uint32_t reg_val = *(volatile uint32_t *)(0x1108000);
+	uint32_t reg_val = *(volatile uint32_t *)(0x8208000);
 	*status= (uint32_t)((reg_val >> 0) & 0xffffffff);
 }
 void
@@ -92,7 +92,7 @@ setCsrStatus(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*status & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x1108000) = reg_val;
+	*(volatile uint32_t *)(0x8208000) = reg_val;
 }
 
 void
@@ -102,7 +102,7 @@ getCsrSdConfig(
 	bool *		connect_crc_error_to_interrupt,
 	bool *		crc_error)
 {
-	uint32_t reg_val = *(volatile uint32_t *)(0x110c000);
+	uint32_t reg_val = *(volatile uint32_t *)(0x820c000);
 	*force_write_crc_ok= (bool)((reg_val >> 0) & 0x1);
 	*ignore_write_crc_error= (bool)((reg_val >> 8) & 0x1);
 	*connect_crc_error_to_interrupt= (bool)((reg_val >> 16) & 0x1);
@@ -121,22 +121,56 @@ setCsrSdConfig(
 	reg_val |= ((uint32_t)*connect_crc_error_to_interrupt & 0x1) << 16;
 	reg_val |= ((uint32_t)*crc_error & 0x1) << 24;
 
-	*(volatile uint32_t *)(0x110c000) = reg_val;
+	*(volatile uint32_t *)(0x820c000) = reg_val;
 }
 
 void
-getCsrBootAddress(
-	uint32_t *	address)
+getCsrTrapMcause(
+	uint32_t *	trap_mcause)
 {
-	uint32_t reg_val = *(volatile uint32_t *)(0x1110000);
-	*address= (uint32_t)((reg_val >> 0) & 0xffffffff);
+	uint32_t reg_val = *(volatile uint32_t *)(0x8210000);
+	*trap_mcause= (uint32_t)((reg_val >> 0) & 0xffffffff);
 }
 void
-setCsrBootAddress(
-	uint32_t *	address)
+setCsrTrapMcause(
+	uint32_t *	trap_mcause)
 {
 	uint32_t reg_val = 0;
-	reg_val |= ((uint32_t)*address & 0xffffffff) << 0;
+	reg_val |= ((uint32_t)*trap_mcause & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x1110000) = reg_val;
+	*(volatile uint32_t *)(0x8210000) = reg_val;
+}
+
+void
+getCsrTrapMepc(
+	uint32_t *	trap_mepc)
+{
+	uint32_t reg_val = *(volatile uint32_t *)(0x8210004);
+	*trap_mepc= (uint32_t)((reg_val >> 0) & 0xffffffff);
+}
+void
+setCsrTrapMepc(
+	uint32_t *	trap_mepc)
+{
+	uint32_t reg_val = 0;
+	reg_val |= ((uint32_t)*trap_mepc & 0xffffffff) << 0;
+
+	*(volatile uint32_t *)(0x8210004) = reg_val;
+}
+
+void
+getCsrTrapMtval(
+	uint32_t *	trap_mtval)
+{
+	uint32_t reg_val = *(volatile uint32_t *)(0x8210008);
+	*trap_mtval= (uint32_t)((reg_val >> 0) & 0xffffffff);
+}
+void
+setCsrTrapMtval(
+	uint32_t *	trap_mtval)
+{
+	uint32_t reg_val = 0;
+	reg_val |= ((uint32_t)*trap_mtval & 0xffffffff) << 0;
+
+	*(volatile uint32_t *)(0x8210008) = reg_val;
 }

@@ -7,18 +7,21 @@
 #include <stdbool.h>
 #include "axil_pib_dma_reg_types.h"
 
-void	packAxilPibDmaIrqCtrl(
+void
+packAxilPibDmaIrqCtrl(
 	uint32_t *	registerValue,
 	bool *		enable
 );
 
-void	packAxilPibDmaAck(
+void
+packAxilPibDmaAck(
 	uint32_t *	registerValue,
 	bool *		error,
 	bool *		irq
 );
 
-void	unpackAxilPibDmaStatus(
+void
+unpackAxilPibDmaStatus(
 	uint32_t *	registerValue,
 	bool *		unsupported_op,
 	bool *		write_error,
@@ -26,27 +29,32 @@ void	unpackAxilPibDmaStatus(
 	DMAState *	state
 );
 
-void	packAxilPibDmaSource(
+void
+packAxilPibDmaSource(
 	uint32_t *	registerValue,
 	uint32_t *	pointer
 );
 
-void	packAxilPibDmaLength(
+void
+packAxilPibDmaLength(
 	uint32_t *	registerValue,
 	uint32_t *	bytes
 );
 
-void	packAxilPibDmaDestination(
+void
+packAxilPibDmaDestination(
 	uint32_t *	registerValue,
 	uint32_t *	pointer
 );
 
-void	packAxilPibDmaControl(
+void
+packAxilPibDmaControl(
 	uint32_t *	registerValue,
 	DMAOpCode *	op
 );
 
-void	packAxilPibDmaSet(
+void
+packAxilPibDmaSet(
 	uint32_t *	registerValue,
 	uint32_t *	val
 );

@@ -6,12 +6,8 @@ class SpiFlash:
     BASE_ADDR = 0x0
     class Bitstream:
         BOTTOM_ENTRY = 0x0
-        TOP_ENTRY = 0x17fffc
-        SIZE_BYTES = 0x180000
-    class Bootloader:
-        BOTTOM_ENTRY = 0x180000
         TOP_ENTRY = 0x1ffffc
-        SIZE_BYTES = 0x80000
+        SIZE_BYTES = 0x200000
     class UserData:
         BOTTOM_ENTRY = 0x200000
         TOP_ENTRY = 0xfffffc

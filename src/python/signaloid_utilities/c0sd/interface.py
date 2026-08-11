@@ -23,9 +23,16 @@
 
 import struct
 import time
-from typing import Callable, Dict, Iterable, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from ..common.raw_block_device import UnifiedBlockDevice
+from ..common.bitstream_prefix import (
+    COMMENT_WINDOW_BYTES,
+    NEXUS,
+    crc32,
+    locate_prefix,
+    read_prefix_json,
+)
 from ..regmap_loader import load_regmap_namespace
 
 
@@ -74,7 +81,6 @@ class C0SDBaseInterface:
 
     COMMAND_REGISTER_OFFSET: int = 0
     CONFIG_REGISTER_OFFSET: int = 0
-    BOOT_ADDRESS_REGISTER_OFFSET: int = 0
     STATUS_REGISTER_OFFSET: int = 0
 
     MMIO_BUFFER_SIZE_BYTES: int = 8192
@@ -164,6 +170,89 @@ class C0SDBaseInterface:
             self.OUTPUT_BUFFER_OFFSET + self.OUTPUT_BUFFER_SIZE_BYTES - size
         )
         return self._read(DEBUG_LOG_BUFFER_OFFSET, size)
+
+    def read_bitstream_prefix(
+        self, offset: int | None = None, size: int = COMMENT_WINDOW_BYTES
+    ) -> bytes:
+        """Return the raw ASCII metadata-prefix payload of the bitstream.
+
+        Reads ``size`` bytes at ``offset`` (default ``BITSTREAM_OFFSET``)
+        and returns the bytes between the Nexus (``LSCC``) framing markers.
+
+        Args:
+            offset: Flash byte offset of the bitstream; defaults to
+                ``self.BITSTREAM_OFFSET``.
+            size: Number of bytes to read for the prefix scan (the comment
+                fits comfortably in the default 4096).
+
+        Returns:
+            The metadata payload bytes (framing markers excluded).
+
+        Raises:
+            ValueError: if the LSCC framing is not present.
+        """
+        if offset is None:
+            offset = self.BITSTREAM_OFFSET
+        chunk = self._read(offset, size)
+        prefix_start, prefix_end, _ = locate_prefix(chunk, NEXUS)
+        return chunk[prefix_start:prefix_end]
+
+    def read_bitstream_metadata(
+        self, offset: int | None = None
+    ) -> Dict[str, Any]:
+        """Decode the Signaloid JSON metadata embedded in the bitstream.
+
+        Args:
+            offset: Flash byte offset of the bitstream; defaults to
+                ``self.BITSTREAM_OFFSET``.
+
+        Returns:
+            The decoded metadata object.
+
+        Raises:
+            ValueError: if no valid JSON metadata object is present.
+        """
+        if offset is None:
+            offset = self.BITSTREAM_OFFSET
+        chunk = self._read(offset, COMMENT_WINDOW_BYTES)
+        return read_prefix_json(chunk, NEXUS)
+
+    def verify_bitstream_crc(
+        self,
+        offset: int | None = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> bool | None:
+        """Recompute the CRC-32 of the CRC-covered region and compare.
+
+        Reads ``metadata['bitstream_size']`` bytes from just after the
+        comment section and compares their CRC-32 to
+        ``metadata['bitstream_crc']`` (accepting the ``crc``/``size``
+        aliases).
+
+        Args:
+            offset: Flash byte offset of the bitstream; defaults to
+                ``self.BITSTREAM_OFFSET``.
+            metadata: Previously decoded metadata; read from the device if
+                omitted.
+
+        Returns:
+            ``True``/``False`` for the comparison, or ``None`` if the
+            metadata carries no CRC/size fields.
+        """
+        if offset is None:
+            offset = self.BITSTREAM_OFFSET
+        if metadata is None:
+            metadata = self.read_bitstream_metadata(offset)
+
+        expected_crc = metadata.get("bitstream_crc", metadata.get("crc"))
+        expected_size = metadata.get("bitstream_size", metadata.get("size"))
+        if expected_crc is None or expected_size is None:
+            return None
+
+        chunk = self._read(offset, COMMENT_WINDOW_BYTES)
+        _, _, crc_start = locate_prefix(chunk, NEXUS)
+        payload = self._read(offset + crc_start, int(expected_size))
+        return crc32(payload) == int(expected_crc)
 
     def set_command(self, value: int) -> None:
         self._write(self.COMMAND_REGISTER_OFFSET, struct.pack("<I", value))
@@ -420,9 +509,12 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
 
         self.COMMAND_REGISTER_OFFSET = csr.Command.ADDR
         self.CONFIG_REGISTER_OFFSET = csr.Config.ADDR
-        self.BOOT_ADDRESS_REGISTER_OFFSET = csr.BootAddress.ADDR
         self.STATUS_REGISTER_OFFSET = csr.Status.ADDR
         self.SD_CONFIG_REGISTER_OFFSET = csr.SdConfig.ADDR
+
+        self.TRAP_MCAUSE_REGISTER_OFFSET = csr.TrapMcause.ADDR
+        self.TRAP_MEPC_REGISTER_OFFSET = csr.TrapMepc.ADDR
+        self.TRAP_MTVAL_REGISTER_OFFSET = csr.TrapMtval.ADDR
 
         self.MMIO_BUFFER_OFFSET = top.IoBuff.BOTTOM_ENTRY
         self.MMIO_BUFFER_SIZE_BYTES = top.IoBuff.SIZE_BYTES
@@ -569,6 +661,17 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
             mask = 1 << bit
             value = (value & ~mask) | ((1 if field else 0) << bit)
         self.set_config_register(value)
+
+    def get_trap_status(self) -> Tuple[int, int, int]:
+        """Read the trap registers (mcause, mepc, mtval) in one transaction.
+
+        The three registers are contiguous in the memory map, so they are read
+        together as a single packed 12-byte block. Returns (mcause, mepc,
+        mtval); mcause is 0xFFFFFFFF when no trap has been recorded. NOTE: the
+        cv32e40p does not implement mtval, so mtval always reads 0.
+        """
+        buffer = self._read(self.TRAP_MCAUSE_REGISTER_OFFSET, 12)
+        return struct.unpack("<III", buffer)
 
 
 class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):

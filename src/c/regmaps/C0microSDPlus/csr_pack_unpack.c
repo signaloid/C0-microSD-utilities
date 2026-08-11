@@ -133,20 +133,58 @@ packCsrSdConfig(
 }
 
 void
-unpackCsrBootAddress(
+unpackCsrTrapMcause(
 	uint32_t *	registerValue,
-	uint32_t *	address)
+	uint32_t *	trap_mcause)
 {
 	uint32_t reg_val = *registerValue;
-	*address= (uint32_t)((reg_val >> 0) & 0xffffffff);
+	*trap_mcause= (uint32_t)((reg_val >> 0) & 0xffffffff);
 }
 void
-packCsrBootAddress(
+packCsrTrapMcause(
 	uint32_t *	registerValue,
-	uint32_t *	address)
+	uint32_t *	trap_mcause)
 {
 	uint32_t reg_val = 0;
-	reg_val |= ((uint32_t)*address & 0xffffffff) << 0;
+	reg_val |= ((uint32_t)*trap_mcause & 0xffffffff) << 0;
+
+	*registerValue = reg_val;
+}
+
+void
+unpackCsrTrapMepc(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mepc)
+{
+	uint32_t reg_val = *registerValue;
+	*trap_mepc= (uint32_t)((reg_val >> 0) & 0xffffffff);
+}
+void
+packCsrTrapMepc(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mepc)
+{
+	uint32_t reg_val = 0;
+	reg_val |= ((uint32_t)*trap_mepc & 0xffffffff) << 0;
+
+	*registerValue = reg_val;
+}
+
+void
+unpackCsrTrapMtval(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mtval)
+{
+	uint32_t reg_val = *registerValue;
+	*trap_mtval= (uint32_t)((reg_val >> 0) & 0xffffffff);
+}
+void
+packCsrTrapMtval(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mtval)
+{
+	uint32_t reg_val = 0;
+	reg_val |= ((uint32_t)*trap_mtval & 0xffffffff) << 0;
 
 	*registerValue = reg_val;
 }

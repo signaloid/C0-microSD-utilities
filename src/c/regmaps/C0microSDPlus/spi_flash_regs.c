@@ -19,19 +19,6 @@ setSpiFlashBitstreamEntry(uint32_t offset, uint32_t *  value)
 
 
 uint32_t
-getSpiFlashBootloaderEntry(uint32_t offset)
-{
-	return *(volatile uint32_t *)(0x180000 + offset);
-}
-
-void
-setSpiFlashBootloaderEntry(uint32_t offset, uint32_t *  value)
-{
-	*(volatile uint32_t *)(0x180000 + offset) = *value;
-}
-
-
-uint32_t
 getSpiFlashUserDataEntry(uint32_t offset)
 {
 	return *(volatile uint32_t *)(0x200000 + offset);
