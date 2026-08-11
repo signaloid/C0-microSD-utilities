@@ -1,32 +1,52 @@
 [project]
 name = "signaloid-utilities"
-version = "2.8.0"
+dynamic = ["version"]
 description = ""
-authors = [
-    {name = "Signaloid", email = "info@signaloid.com"}
-]
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [{name = "Signaloid", email = "info@signaloid.com"}]
 dependencies = [
-    "requests (>=2.33,<3.0.0)",
-    "urllib3 (>=2.7.0,<3)",
+	"requests (>=2.33,<3.0.0)",
+	"urllib3 (>=2.7.0,<3)",
 ]
+
+[project.urls]
+homepage = "https://signaloid.com/"
+repository = "https://github.com/signaloid/Signaloid-Compute-Module-Utilities"
+documentation = "https://docs.signaloid.io"
+
+[project.scripts]
+C0-microSD-toolkit = 'signaloid_utilities.c0microsd.toolkit:main'
+C0-SD-toolkit = 'signaloid_utilities.c0sd.toolkit:main'
+SDDev-toolkit = 'signaloid_utilities.sddev.toolkit:main'
+SDDev-power-measure = 'signaloid_utilities.sddev.power_measure:main'
+C0-debug-logger = 'signaloid_utilities.debug_logger:main'
 
 
 [tool.poetry]
+requires-poetry = ">=2.0"
 packages = [
-	{include = "signaloid_utilities", from = "src/python"},
+	{ include = "signaloid_utilities", from = "src/python" },
 ]
+version = "0.0.0"
+
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
 
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.17.0"
+mypy = "^1.19.1"
 flake8 = "^7.3.0"
 
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 
 [tool.mypy]
