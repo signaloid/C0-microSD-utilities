@@ -1,7 +1,6 @@
-# C0-microSD Utilities
+# Signaloid Compute Module Utilities
 This repository offers a set of common C and Python libraries for building host applications that interact
-with the [Signaloid C0-microSD hot-pluggable hardware module](https://github.com/signaloid/C0-microSD-hardware),
-as well as the `C0_microSD_toolkit`, which you can use to flash new bitstreams and firmware to the device.
+with Signaloid Compute modules like the [Signaloid C0-microSD hot-pluggable hardware module](https://github.com/signaloid/C0-microSD-hardware), as well as toolkits, which you can use to flash new bitstreams and firmware to the devices.
 
 ## Interfacing with the Signaloid C0-microSD
 When connected to a host computer, the Signaloid C0-microSD presents itself as an unformatted block
@@ -20,7 +19,7 @@ that interact with the C0-microSD when the Signaloid SoC mode is active.
 
 ## Using the `C0_microSD_toolkit.py` tool
 You can use the `C0_microSD_toolkit.py` Python script to configure the C0-microSD and flash new
-firmware. The script is written and tested in Python 3.11 on MacOS 14.5 and does not use any
+firmware. The script is written and tested in Python 3.10 and does not use any
 additional libraries. Following are the program's command-line arguments and usage examples:
 
 ```
@@ -82,64 +81,120 @@ sudo python3 ./C0_microSD_toolkit.py -t /dev/sda -i
 > Using the `-s` option will toggle the active configuration. So, if the device has booted in 
 > `Bootloader` mode, this option will switch to `Signaloid Core` mode, and vice versa.
 
-# C0-microSD+ Utilities
-This repository includes C and python libraries for the Signaloid C0-microSD+ compute module, as well as the `C0_microSD_plus_toolkit`, which you can use to flash new bitstreams and firmware to the device.
+# C0-SD Utilities
+This repository includes C and Python libraries for the Signaloid **C0-SD family** of compute modules — both the **C0-microSD+** and the **C0-SD** — as well as the `C0_SD_toolkit`, which you can use to flash new bitstreams and application binaries and to inspect a connected device.
 
-## Interfacing with the Signaloid C0-microSD+
-When connected to a host computer, the Signaloid C0-microSD+ presents itself as an unformatted block
+## Interfacing with the Signaloid C0-SD family
+When connected to a host computer, a C0-microSD+ or C0-SD presents itself as an unformatted block
 storage device. The host computer communicates with the device through block reads and writes to a set of
-pre-defined addresses. In contrast to the C0-microSD, the C0-microSD+ operates in a single mode, which
-supports flashing and running new application binaries, as well as updating the FPGA bitstream.
+pre-defined addresses. In contrast to the C0-microSD, these modules operate in a single mode, which
+supports flashing and running new application binaries, as well as updating the FPGA bitstream. The
+`--variant` option selects the target module; when it is omitted, the toolkit auto-detects the module
+from the device's bitstream (see *Selecting the compute module* below).
 
-## Using the `C0_microSD_plus_toolkit.py` tool
-You can use the `C0_microSD_plus_toolkit.py` Python script to configure the C0-microSD+ and flash new
-firmware. The script is written and tested in Python 3.11 on MacOS 14.5 and does not use any
-additional libraries. Following are the program's command-line arguments and usage examples:
+## Using the `C0_SD_toolkit.py` tool
+You can use the `C0_SD_toolkit.py` Python script to configure a C0-microSD+ or C0-SD and flash new
+firmware. The script is written and tested in Python 3.10 and does not use any additional libraries.
+Following are the program's command-line arguments and usage examples:
 
 ```
-usage: C0_microSD_plus_toolkit.py [-h] target_device <command> ...
+usage: C0_SD_toolkit.py [-h] [--variant {C0-microSD+,C0-SD}]
+                        [--regmap-path REGMAP_PATH]
+                        target_device <command> ...
 
-Signaloid C0-microSD-plus-toolkit. Version 1.0
+Signaloid C0-SD toolkit. Version 2.3
 
 positional arguments:
-  target_device      Target device path
+  target_device         Target device path
   <command>
-    info             Print target C0-microSD+ info and run bitstream verification.
-    core             Start or stop the Signaloid SoC core
-    flash-application
-                     Flash an application binary
-    flash-bitstream  Flash a bitstream file
+    info                Print target device info and bitstream metadata.
+    status              Print verbose status (COMMAND, CONFIG, STATUS, and
+                        SD_CONFIG on C0-SD).
+    flash-application   Flash an application binary
+    flash-bitstream     Flash a bitstream file
+    configure (config)  Apply a configuration action (per-variant)
 
 options:
-  -h, --help         show this help message and exit
+  -h, --help            show this help message and exit
+  --variant {C0-microSD+,C0-SD}
+                        Hardware variant. Default: auto-detect from the
+                        device's bitstream; required if it cannot be
+                        identified.
+  --regmap-path REGMAP_PATH
+                        Path to the regmap package directory for the selected
+                        --variant (defaults to the built-in regmaps).
+```
+
+### Selecting the compute module (`--variant`)
+The toolkit works with both the C0-microSD+ and the C0-SD. Which variant a command targets is
+resolved as follows:
+
+- **`--variant` omitted:** the toolkit auto-detects the module by decoding the JSON metadata prefix
+  of the device's bitstream and reading its `compute_module_type` field. This is a lookup by key on
+  the decoded JSON, so it is independent of the order or position of the fields (future bitstream
+  revisions may reorder them). If the module is identified, that variant is used.
+- **`--variant` omitted and the module cannot be identified** (e.g. a blank device, or a bitstream
+  without Signaloid metadata): the toolkit exits with an error asking you to pass `--variant`.
+- **`--variant` given:** it overrides auto-detection. If the given variant does not match the one
+  declared by the bitstream — or the bitstream could not be identified — the toolkit prints a warning
+  and proceeds with the variant you specified.
+
+Detection messages and warnings are written to `stderr`, so they do not interfere with command output.
+
+### The `info` command
+`info` decodes and prints the bitstream's embedded metadata (compute module type, creation date,
+bitstream type, metadata-schema version, size, and CRC). By default it reads only the metadata prefix
+and **does not** run CRC verification, because the default device configuration exposes only the first
+4 KiB of flash and locks the rest.
+
+Pass `--verify` to check the bitstream CRC: the toolkit unlocks the bitstream section, reads and
+verifies the full bitstream, then re-locks the section (it is always re-locked afterwards, even if
+verification fails).
+
+```
+usage: C0_SD_toolkit.py target_device info [-h] [--raw] [--verify]
+
+options:
+  -h, --help  show this help message and exit
+  --raw       Print the raw JSON metadata object instead of labelled fields.
+  --verify    Unlock the bitstream section, verify its CRC, then re-lock it
+              (off by default; the locked device exposes only the first 4 KiB
+              of flash).
 ```
 
 ### Examples:
-The following examples assume that the C0-microSD is located in`/dev/sda`.
+The following examples assume the target device is located at `/dev/sda`. They omit `--variant`, so
+the toolkit auto-detects the module from the device; pass `--variant=C0-microSD+` or
+`--variant=C0-SD` to force a specific one.
+
+Print target device info (metadata only, no CRC verification):
+```sh
+sudo python3 C0_SD_toolkit.py /dev/sda info
+```
+
+Print device info and verify the bitstream CRC (unlocks then re-locks the bitstream section):
+```sh
+sudo python3 C0_SD_toolkit.py /dev/sda info --verify
+```
 
 Flash new Signaloid SoC application binary:
 ```sh
-sudo python C0_microSD_plus_toolkit.py /dev/sda flash-application program.bin   
+sudo python3 C0_SD_toolkit.py /dev/sda flash-application program.bin
 ```
 
 Flash new FPGA bitstream:
 ```sh
-sudo python C0_microSD_plus_toolkit.py /dev/sda flash-bitstream bitstream.bin
+sudo python3 C0_SD_toolkit.py /dev/sda flash-bitstream bitstream.bin
 ```
 
-Print target C0-microSD+ information and verify loaded bitstreams:
+Start the Signaloid SoC core:
 ```sh
-sudo python C0_microSD_plus_toolkit.py /dev/sda info
+sudo python3 C0_SD_toolkit.py /dev/sda config core-start
 ```
 
-Start Signaloid SoC core:
+Stop and reset the Signaloid SoC core:
 ```sh
-sudo python C0_microSD_plus_toolkit.py /dev/sda core start
-```
-
-Stop and reset Signaloid SoC core:
-```sh
-sudo python C0_microSD_plus_toolkit.py /dev/sda core stop
+sudo python3 C0_SD_toolkit.py /dev/sda config core-stop
 ```
 
 # SD-Dev utilities

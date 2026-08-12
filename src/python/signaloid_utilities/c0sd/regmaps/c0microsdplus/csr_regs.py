@@ -3,9 +3,9 @@
 
 
 class Csr:
-    BASE_ADDR = 0x1100000
+    BASE_ADDR = 0x8200000
     class Command:
-        ADDR = 0x1100000
+        ADDR = 0x8200000
         class Command:
             LSB = 0
             MSB = 31
@@ -23,7 +23,7 @@ class Csr:
             reg_val |= (f_command & 0xffffffff) << 0
             return reg_val
     class Config:
-        ADDR = 0x1104000
+        ADDR = 0x8204000
         class Rstn:
             LSB = 0
             MSB = 0
@@ -101,7 +101,7 @@ class Csr:
             reg_val |= (f_reserved & 0x3fffff) << 10
             return reg_val
     class Status:
-        ADDR = 0x1108000
+        ADDR = 0x8208000
         class Status:
             LSB = 0
             MSB = 31
@@ -119,7 +119,7 @@ class Csr:
             reg_val |= (f_status & 0xffffffff) << 0
             return reg_val
     class SdConfig:
-        ADDR = 0x110c000
+        ADDR = 0x820c000
         class ForceWriteCrcOk:
             LSB = 0
             MSB = 0
@@ -154,21 +154,57 @@ class Csr:
             reg_val |= (f_connect_crc_error_to_interrupt & 0x1) << 16
             reg_val |= (f_crc_error & 0x1) << 24
             return reg_val
-    class BootAddress:
-        ADDR = 0x1110000
-        class Address:
+    class TrapMcause:
+        ADDR = 0x8210000
+        class TrapMcause:
             LSB = 0
             MSB = 31
             MASK = 0xffffffff
 
         @staticmethod
         def unpack(reg_val: int) -> int:
-            f_address = (reg_val >> 0) & 0xffffffff
-            return f_address
+            f_trap_mcause = (reg_val >> 0) & 0xffffffff
+            return f_trap_mcause
 
 
         @staticmethod
-        def pack(f_address: int) -> int:
+        def pack(f_trap_mcause: int) -> int:
             reg_val = 0
-            reg_val |= (f_address & 0xffffffff) << 0
+            reg_val |= (f_trap_mcause & 0xffffffff) << 0
+            return reg_val
+    class TrapMepc:
+        ADDR = 0x8210004
+        class TrapMepc:
+            LSB = 0
+            MSB = 31
+            MASK = 0xffffffff
+
+        @staticmethod
+        def unpack(reg_val: int) -> int:
+            f_trap_mepc = (reg_val >> 0) & 0xffffffff
+            return f_trap_mepc
+
+
+        @staticmethod
+        def pack(f_trap_mepc: int) -> int:
+            reg_val = 0
+            reg_val |= (f_trap_mepc & 0xffffffff) << 0
+            return reg_val
+    class TrapMtval:
+        ADDR = 0x8210008
+        class TrapMtval:
+            LSB = 0
+            MSB = 31
+            MASK = 0xffffffff
+
+        @staticmethod
+        def unpack(reg_val: int) -> int:
+            f_trap_mtval = (reg_val >> 0) & 0xffffffff
+            return f_trap_mtval
+
+
+        @staticmethod
+        def pack(f_trap_mtval: int) -> int:
+            reg_val = 0
+            reg_val |= (f_trap_mtval & 0xffffffff) << 0
             return reg_val

@@ -11,7 +11,7 @@ setAxilPibDmaIrqCtrl(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*enable & 0x1) << 0;
 
-	*(volatile uint32_t *)(0x2000000) = reg_val;
+	*(volatile uint32_t *)(0x10000000) = reg_val;
 }
 
 void
@@ -23,7 +23,7 @@ setAxilPibDmaAck(
 	reg_val |= ((uint32_t)*error & 0x1) << 0;
 	reg_val |= ((uint32_t)*irq & 0x1) << 8;
 
-	*(volatile uint32_t *)(0x2000004) = reg_val;
+	*(volatile uint32_t *)(0x10000004) = reg_val;
 }
 
 void
@@ -33,7 +33,7 @@ getAxilPibDmaStatus(
 	bool *		read_error,
 	DMAState *	state)
 {
-	uint32_t reg_val = *(volatile uint32_t *)(0x2000008);
+	uint32_t reg_val = *(volatile uint32_t *)(0x10000008);
 	*unsupported_op= (bool)((reg_val >> 0) & 0x1);
 	*write_error= (bool)((reg_val >> 8) & 0x1);
 	*read_error= (bool)((reg_val >> 16) & 0x1);
@@ -47,7 +47,7 @@ setAxilPibDmaSource(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*pointer & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x200000c) = reg_val;
+	*(volatile uint32_t *)(0x1000000c) = reg_val;
 }
 
 void
@@ -57,7 +57,7 @@ setAxilPibDmaLength(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*bytes & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x2000010) = reg_val;
+	*(volatile uint32_t *)(0x10000010) = reg_val;
 }
 
 void
@@ -67,7 +67,7 @@ setAxilPibDmaDestination(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*pointer & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x2000014) = reg_val;
+	*(volatile uint32_t *)(0x10000014) = reg_val;
 }
 
 void
@@ -77,7 +77,7 @@ setAxilPibDmaControl(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*op & 0xff) << 0;
 
-	*(volatile uint32_t *)(0x2000018) = reg_val;
+	*(volatile uint32_t *)(0x10000018) = reg_val;
 }
 
 void
@@ -87,5 +87,5 @@ setAxilPibDmaSet(
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*val & 0xffffffff) << 0;
 
-	*(volatile uint32_t *)(0x200001c) = reg_val;
+	*(volatile uint32_t *)(0x1000001c) = reg_val;
 }

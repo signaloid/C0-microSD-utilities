@@ -6,16 +6,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void	unpackCsrCommand(
+void
+unpackCsrCommand(
 	uint32_t *	registerValue,
 	uint32_t *	command
 );
-void	packCsrCommand(
+void
+packCsrCommand(
 	uint32_t *	registerValue,
 	uint32_t *	command
 );
 
-void	unpackCsrConfig(
+void
+unpackCsrConfig(
 	uint32_t *	registerValue,
 	bool *		rstn,
 	bool *		unlock_bitstream_section,
@@ -29,7 +32,8 @@ void	unpackCsrConfig(
 	bool *		debug_pin_2,
 	uint32_t *	reserved
 );
-void	packCsrConfig(
+void
+packCsrConfig(
 	uint32_t *	registerValue,
 	bool *		rstn,
 	bool *		unlock_bitstream_section,
@@ -44,23 +48,27 @@ void	packCsrConfig(
 	uint32_t *	reserved
 );
 
-void	unpackCsrStatus(
+void
+unpackCsrStatus(
 	uint32_t *	registerValue,
 	uint32_t *	status
 );
-void	packCsrStatus(
+void
+packCsrStatus(
 	uint32_t *	registerValue,
 	uint32_t *	status
 );
 
-void	unpackCsrSdConfig(
+void
+unpackCsrSdConfig(
 	uint32_t *	registerValue,
 	bool *		force_write_crc_ok,
 	bool *		ignore_write_crc_error,
 	bool *		connect_crc_error_to_interrupt,
 	bool *		crc_error
 );
-void	packCsrSdConfig(
+void
+packCsrSdConfig(
 	uint32_t *	registerValue,
 	bool *		force_write_crc_ok,
 	bool *		ignore_write_crc_error,
@@ -68,11 +76,35 @@ void	packCsrSdConfig(
 	bool *		crc_error
 );
 
-void	unpackCsrBootAddress(
+void
+unpackCsrTrapMcause(
 	uint32_t *	registerValue,
-	uint32_t *	address
+	uint32_t *	trap_mcause
 );
-void	packCsrBootAddress(
+void
+packCsrTrapMcause(
 	uint32_t *	registerValue,
-	uint32_t *	address
+	uint32_t *	trap_mcause
+);
+
+void
+unpackCsrTrapMepc(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mepc
+);
+void
+packCsrTrapMepc(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mepc
+);
+
+void
+unpackCsrTrapMtval(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mtval
+);
+void
+packCsrTrapMtval(
+	uint32_t *	registerValue,
+	uint32_t *	trap_mtval
 );

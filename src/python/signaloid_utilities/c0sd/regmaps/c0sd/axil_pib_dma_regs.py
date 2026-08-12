@@ -3,9 +3,9 @@
 
 
 class AxilPibDma:
-    BASE_ADDR = 0x2000000
+    BASE_ADDR = 0x20000000
     class IrqCtrl:
-        ADDR = 0x2000000
+        ADDR = 0x20000000
         class Enable:
             LSB = 0
             MSB = 0
@@ -23,7 +23,7 @@ class AxilPibDma:
             reg_val |= (f_enable & 0x1) << 0
             return reg_val
     class Ack:
-        ADDR = 0x2000004
+        ADDR = 0x20000004
         class Error:
             LSB = 0
             MSB = 0
@@ -47,7 +47,7 @@ class AxilPibDma:
             reg_val |= (f_irq & 0x1) << 8
             return reg_val
     class Status:
-        ADDR = 0x2000008
+        ADDR = 0x20000008
         class UnsupportedOp:
             LSB = 0
             MSB = 0
@@ -83,7 +83,7 @@ class AxilPibDma:
             reg_val |= (f_state & 0x3) << 24
             return reg_val
     class Source:
-        ADDR = 0x200000c
+        ADDR = 0x2000000c
         class Pointer:
             LSB = 0
             MSB = 31
@@ -101,7 +101,7 @@ class AxilPibDma:
             reg_val |= (f_pointer & 0xffffffff) << 0
             return reg_val
     class Length:
-        ADDR = 0x2000010
+        ADDR = 0x20000010
         class Bytes:
             LSB = 0
             MSB = 31
@@ -119,7 +119,7 @@ class AxilPibDma:
             reg_val |= (f_bytes & 0xffffffff) << 0
             return reg_val
     class Destination:
-        ADDR = 0x2000014
+        ADDR = 0x20000014
         class Pointer:
             LSB = 0
             MSB = 31
@@ -137,7 +137,7 @@ class AxilPibDma:
             reg_val |= (f_pointer & 0xffffffff) << 0
             return reg_val
     class Control:
-        ADDR = 0x2000018
+        ADDR = 0x20000018
         class Op:
             LSB = 0
             MSB = 7
@@ -155,7 +155,7 @@ class AxilPibDma:
             reg_val |= (f_op & 0xff) << 0
             return reg_val
     class Set:
-        ADDR = 0x200001c
+        ADDR = 0x2000001c
         class Val:
             LSB = 0
             MSB = 31

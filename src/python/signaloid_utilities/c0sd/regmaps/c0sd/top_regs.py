@@ -8,13 +8,21 @@ from .axil_pib_dma_regs import AxilPibDma as _AxilPibDma
 class Top:
     BASE_ADDR = 0x0
     SpiFlash = _SpiFlash
+    class FlashOtp:
+        BOTTOM_ENTRY = 0x4000000
+        TOP_ENTRY = 0x40002fc
+        SIZE_BYTES = 0x300
     class Lram:
-        BOTTOM_ENTRY = 0x1000000
-        TOP_ENTRY = 0x106fffc
+        BOTTOM_ENTRY = 0x6000000
+        TOP_ENTRY = 0x606fffc
         SIZE_BYTES = 0x70000
+    class Psram:
+        BOTTOM_ENTRY = 0x8000000
+        TOP_ENTRY = 0xffffffc
+        SIZE_BYTES = 0x8000000
     Csr = _Csr
     class IoBuff:
-        BOTTOM_ENTRY = 0x1200000
-        TOP_ENTRY = 0x120fffc
+        BOTTOM_ENTRY = 0x10100000
+        TOP_ENTRY = 0x1010fffc
         SIZE_BYTES = 0x10000
     AxilPibDma = _AxilPibDma

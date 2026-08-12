@@ -1,0 +1,70 @@
+name: Publish Python Package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  POETRY_CACHE_DIR: ~/.cache/pypoetry
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Debug
+        run: |
+          echo "github.sha:" ${{ github.sha }}
+          echo "github.event.release.tag_name:" ${{ github.event.release.tag_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry Action
+        run: python -m pip install poetry
+
+      - name: Print Poetry version
+        run: poetry --version
+
+      - name: List Current Directory
+        run: ls
+
+      - name: Install
+        run: poetry install --all-extras
+
+      - name: Install Poetry plugins
+        run: poetry self add "poetry-dynamic-versioning[plugin]>=1.0.0,<2.0.0"
+
+      - name: Print Python Information
+        run: |
+          which python
+          pip freeze
+
+      - name: Build
+        run: poetry build
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v7
+        with:
+          name: "wheel-${{ github.event.pull_request.head.sha || github.sha }}"
+          path: |
+            ./dist/*
+
+      # Upload the artifact to the GitHub release
+      - name: Upload Release Asset
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} dist/*
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

@@ -8,9 +8,19 @@
 
 
 
+uint32_t	getTopFlashOtpEntry(uint32_t offset);
+
+void	setTopFlashOtpEntry(uint32_t offset, uint32_t *  value);
+
+
 uint32_t	getTopLramEntry(uint32_t offset);
 
 void	setTopLramEntry(uint32_t offset, uint32_t *  value);
+
+
+uint32_t	getTopPsramEntry(uint32_t offset);
+
+void	setTopPsramEntry(uint32_t offset, uint32_t *  value);
 
 
 

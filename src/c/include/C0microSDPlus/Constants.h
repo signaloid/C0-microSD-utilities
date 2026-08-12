@@ -41,7 +41,6 @@ enum SignaloidSoCConstants
 	 */
 	kSignaloidSoCConstantsCommandOffset         = CSR_COMMAND,
 	kSignaloidSoCConstantsConfigOffset          = CSR_CONFIG,
-	kSignaloidSoCConstantsBootAddressOffset     = CSR_BOOT_ADDRESS,
 	kSignaloidSoCConstantsStatusOffset          = CSR_STATUS,
 
 	/*
@@ -62,11 +61,6 @@ enum SignaloidSoCConstants
  */
 enum SignaloidC0microSDPlusConstants
 {
-	/*
-	 *	Bootloader offset in SPI flash
-	 */
-	kSignaloidSoCConstantsBootloaderOffset  = SPI_FLASH_BOOTLOADER,
-
 	/*
 	 *	Application offset in SPI flash
 	 */

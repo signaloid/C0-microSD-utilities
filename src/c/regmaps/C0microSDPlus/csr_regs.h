@@ -60,9 +60,23 @@ void	setCsrSdConfig(
 	bool *		crc_error
 );
 
-void	getCsrBootAddress(
-	uint32_t *	address
+void	getCsrTrapMcause(
+	uint32_t *	trap_mcause
 );
-void	setCsrBootAddress(
-	uint32_t *	address
+void	setCsrTrapMcause(
+	uint32_t *	trap_mcause
+);
+
+void	getCsrTrapMepc(
+	uint32_t *	trap_mepc
+);
+void	setCsrTrapMepc(
+	uint32_t *	trap_mepc
+);
+
+void	getCsrTrapMtval(
+	uint32_t *	trap_mtval
+);
+void	setCsrTrapMtval(
+	uint32_t *	trap_mtval
 );
