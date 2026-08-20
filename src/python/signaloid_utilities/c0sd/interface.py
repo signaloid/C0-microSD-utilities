@@ -667,8 +667,7 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
 
         The three registers are contiguous in the memory map, so they are read
         together as a single packed 12-byte block. Returns (mcause, mepc,
-        mtval); mcause is 0xFFFFFFFF when no trap has been recorded. NOTE: the
-        cv32e40p does not implement mtval, so mtval always reads 0.
+        mtval); mcause is 0xFFFFFFFF when no trap has been recorded.
         """
         buffer = self._read(self.TRAP_MCAUSE_REGISTER_OFFSET, 12)
         return struct.unpack("<III", buffer)
