@@ -2,6 +2,13 @@
 This repository offers a set of common C and Python libraries for building host applications that interact
 with Signaloid Compute modules like the [Signaloid C0-microSD hot-pluggable hardware module](https://github.com/signaloid/C0-microSD-hardware), as well as toolkits, which you can use to flash new bitstreams and firmware to the devices.
 
+## Requirements
+This package requires **Python 3.10 or later**.
+
+The `C0_microSD_toolkit.py`, `C0_SD_toolkit.py`, and `C0_debug_logger.py` scripts require no additional libraries.
+
+The `SD_Dev_toolkit.py` and `SD_Dev_power_measure.py` scripts require the `smbus`, `gpiozero`, and `lgpio` packages. See [requirements.txt](./src/python/signaloid_utilities/sddev/requirements.txt).
+
 ## Interfacing with the Signaloid C0-microSD
 When connected to a host computer, the Signaloid C0-microSD presents itself as an unformatted block
 storage device. Communication with the device is achieved through block reads and writes to a set of
@@ -19,8 +26,7 @@ that interact with the C0-microSD when the Signaloid SoC mode is active.
 
 ## Using the `C0_microSD_toolkit.py` tool
 You can use the `C0_microSD_toolkit.py` Python script to configure the C0-microSD and flash new
-firmware. The script is written and tested in Python 3.10 and does not use any
-additional libraries. Following are the program's command-line arguments and usage examples:
+firmware. The script uses only Python standard libraries. Following are the program's command-line arguments and usage examples:
 
 ```
 usage: C0_microSD_toolkit.py [-h] -t TARGET_DEVICE [-b INPUT_FILE] [-u | -q | -w | -s | -i] [-f]
@@ -198,6 +204,9 @@ sudo python3 C0_SD_toolkit.py /dev/sda config core-stop
 ```
 
 # SD-Dev utilities
+## Requirements.
+The SD-Dev utilities require **Python 3.10 or later** as well as the `smbus`, `gpiozero`, and `lgpio` packages. See [requirements.txt](./src/python/signaloid_utilities/sddev/requirements.txt).
+
 ## Using the `SD_Dev_toolkit.py` tool
 You can use the `SD_Dev_toolkit.py` to detect and power-cycle the SD cards on-board the SD-Dev.
 ```
@@ -236,90 +245,3 @@ options:
 ```
 
 [^1]: Implementing a subset of the full capabilities of the Signaloid C0 processor.
-
-
-# The `signaloid_api` module
-You can use the `signaloid_api` module to build and download binaries for applications that support uncertainty-tracking on the Signaloid SoC, from Signaloid's API. This module provides both a command-line interface and a Python API for programmatic usage.
-
-For detailed documentation and examples, please see the [signaloid_api README](src/python/signaloid_api/README.md).
-
-## Error Handling
-
-The module provides consistent error handling with detailed error messages. When an error occurs, you'll see output in the following format:
-
-```
-Action: {action_name}
-Status Code: {http_status_code}
-Headers: {response_headers}
-Response Body: {error_details}
-{action_name} failed: {error_details}
-```
-
-For example, when hitting the repository limit:
-```
-Action: Repository connection
-Status Code: 403
-Headers: {'Content-Type': 'application/json', ...}
-Response Body: {
-  "error": "Forbidden",
-  "message": "Repositories limit reached. Upgrade your account at https://signaloid.io/billing."
-}
-Repository connection failed: {'error': 'Forbidden', 'message': 'Repositories limit reached. Upgrade your account at https://signaloid.io/billing.'}
-```
-
-Common error scenarios include:
-- Repository limit reached
-- Invalid API key
-- Repository not found
-- Build failures
-- Network errors
-
-## Quick Start
-
-```bash
-# Download a binary using repository ID
-python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-id YOUR_REPO_ID
-
-# Build directly from a GitHub repository URL
-python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-url https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
-
-# For help and more options
-python -m src.python.signaloid_api.core_downloader --help
-```
-
-### Example Output
-
-When using a GitHub repository URL, the tool will:
-1. Verify the repository exists and has a `src` directory
-2. Connect the GitHub repository to the Signaloid Cloud Developer Platform
-3. Build the application with the specified core (default: C0-microSD-N)
-4. Download the resulting binary as `buildArtifacts.tar.gz`
-
-The downloaded binary can then be flashed to your C0-microSD device using the C0_microSD_toolkit.py script.
-
-```bash
-$ python -m src.python.signaloid_api.core_downloader --api-key YOUR_API_KEY --repo-url https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
-
-Verifying GitHub repository: https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
-Repository signaloid/Signaloid-C0-microSD-Demo-Calculator is valid and has a src directory
-Creating Signaloid repository from GitHub URL: https://github.com/signaloid/Signaloid-C0-microSD-Demo-Calculator
-Repository created with ID: rep_5c8104c6bb47468bbce9e0d1a83d2123
-
-Using C0-microSD-N (default)
-
-Creating build for repository rep_5c8104c6bb47468bbce9e0d1a83d2123 with C0-microSD-N...
-Build created with ID: bld_ddff3fd873304eccaf68b7ce6f277123
-
-Waiting for build to complete...
-Build status: Initialising
-Build status: Completed
-
-Getting build outputs...
-Build outputs retrieved
-
-Build output:
-
-
-Downloading binary...
-Binary downloaded to: buildArtifacts.tar.gz
-```

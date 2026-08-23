@@ -8,8 +8,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Signaloid", email = "info@signaloid.com"}]
 dependencies = [
-	"requests (>=2.33,<3.0.0)",
-	"urllib3 (>=2.7.0,<3)",
 ]
 
 [project.urls]
@@ -58,7 +56,6 @@ module = [
 	"signaloid_utilities.c0microsd.*",
 	"signaloid_utilities.c0sd.*",
 	"signaloid_utilities.sddev.*",
-	"signaloid_utilities.signaloid_api.*",
 ]
 disallow_untyped_calls = false
 disallow_untyped_defs = false
