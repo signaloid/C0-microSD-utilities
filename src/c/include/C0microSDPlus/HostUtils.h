@@ -94,7 +94,6 @@ void hostUtilsSetSignaloidSoCCommandRegister(char *  device, uint32_t command);
  *
  *	@param	device				device path of C0-microSD+
  *	@param	rstn				return value: Reset signal of SoC core
- *	@param	unlockBitstreamSection	return value: Bitstream section of SPI flash is unlocked
  *	@param	swLedEnable			return value: Software control of onboard LED is enabled
  *	@param	swLed				return value: Software control bit of onboard LED
  *	@param	redLed				return value: Red onboard LED control bit
@@ -108,7 +107,6 @@ void
 hostUtilsGetSignaloidSoCConfigRegisterUnpacked(
 	char *  device,
 	bool *  rstn,
-	bool *  unlockBitstreamSection,
 	bool *  swLedEnable,
 	bool *  swLed,
 	bool *  redLed,
@@ -123,7 +121,6 @@ hostUtilsGetSignaloidSoCConfigRegisterUnpacked(
  *
  *	@param	device				device path of C0-microSD+
  *	@param	rstn				Reset signal of SoC core
- *	@param	unlockBitstreamSection	Unlock bitstream section of SPI flash
  *	@param	swLedEnable			Enable software control of onboard LED
  *	@param	swLed				Software control bit of onboard LED
  *	@param	redLed				Red onboard LED control bit
@@ -137,7 +134,6 @@ void
 hostUtilsSetSignaloidSoCConfigRegisterUnpacked(
 	char *  device,
 	bool rstn,
-	bool unlockBitstreamSection,
 	bool swLedEnable,
 	bool swLed,
 	bool redLed,
@@ -154,18 +150,3 @@ hostUtilsSetSignaloidSoCConfigRegisterUnpacked(
  *	@return	SignaloidSoCStatus	Status code of Signaloid SoC
  */
 SignaloidSoCStatus hostUtilsGetSignaloidSoCStatusRegister(char *  device);
-
-/**
- *	@brief	Read Boot Address register of Signaloid C0-microSD+
- *
- *	@param	device		device path of C0-microSD+
- *	@return	uint32_t	Signaloid C0-microSD+ Boot Address register value
- */
-uint32_t hostUtilsGetSignaloidSoCBootAddressRegister(char *  device);
-
-/**
- *	@brief	Write Boot Address register of Signaloid C0-microSD+
- *	@param	device		device path of C0-microSD+
- *	@param	bootAddress		boot address value
- */
-void hostUtilsSetSignaloidSoCBootAddressRegister(char *  device, uint32_t bootAddress);

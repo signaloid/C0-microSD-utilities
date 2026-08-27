@@ -3,15 +3,16 @@
  */
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 
-uint32_t	getSpiFlashBitstreamEntry(uint32_t offset);
+uint32_t	getSpiFlashBitstreamEntry(size_t offset);
 
-void	setSpiFlashBitstreamEntry(uint32_t offset, uint32_t *  value);
+void	setSpiFlashBitstreamEntry(size_t offset, uint32_t *  value);
 
 
-uint32_t	getSpiFlashUserDataEntry(uint32_t offset);
+uint32_t	getSpiFlashUserDataEntry(size_t offset);
 
-void	setSpiFlashUserDataEntry(uint32_t offset, uint32_t *  value);
+void	setSpiFlashUserDataEntry(size_t offset, uint32_t *  value);

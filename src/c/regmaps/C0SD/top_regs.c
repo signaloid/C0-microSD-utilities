@@ -7,39 +7,39 @@
 
 
 uint32_t
-getTopFlashOtpEntry(uint32_t offset)
+getTopFlashOtpEntry(size_t offset)
 {
 	return *(volatile uint32_t *)(0x4000000 + offset);
 }
 
 void
-setTopFlashOtpEntry(uint32_t offset, uint32_t *  value)
+setTopFlashOtpEntry(size_t offset, uint32_t *  value)
 {
 	*(volatile uint32_t *)(0x4000000 + offset) = *value;
 }
 
 
 uint32_t
-getTopLramEntry(uint32_t offset)
+getTopLramEntry(size_t offset)
 {
 	return *(volatile uint32_t *)(0x6000000 + offset);
 }
 
 void
-setTopLramEntry(uint32_t offset, uint32_t *  value)
+setTopLramEntry(size_t offset, uint32_t *  value)
 {
 	*(volatile uint32_t *)(0x6000000 + offset) = *value;
 }
 
 
 uint32_t
-getTopPsramEntry(uint32_t offset)
+getTopPsramEntry(size_t offset)
 {
 	return *(volatile uint32_t *)(0x8000000 + offset);
 }
 
 void
-setTopPsramEntry(uint32_t offset, uint32_t *  value)
+setTopPsramEntry(size_t offset, uint32_t *  value)
 {
 	*(volatile uint32_t *)(0x8000000 + offset) = *value;
 }
@@ -47,13 +47,13 @@ setTopPsramEntry(uint32_t offset, uint32_t *  value)
 
 
 uint32_t
-getTopIoBuffEntry(uint32_t offset)
+getTopIoBuffEntry(size_t offset)
 {
 	return *(volatile uint32_t *)(0x10100000 + offset);
 }
 
 void
-setTopIoBuffEntry(uint32_t offset, uint32_t *  value)
+setTopIoBuffEntry(size_t offset, uint32_t *  value)
 {
 	*(volatile uint32_t *)(0x10100000 + offset) = *value;
 }

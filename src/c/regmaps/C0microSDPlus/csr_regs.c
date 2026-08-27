@@ -24,7 +24,6 @@ setCsrCommand(
 void
 getCsrConfig(
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		red_led,
@@ -32,12 +31,10 @@ getCsrConfig(
 	bool *		blue_led,
 	bool *		debug_pin_0,
 	bool *		debug_pin_1,
-	bool *		debug_pin_2,
-	uint32_t *	reserved)
+	bool *		debug_pin_2)
 {
 	uint32_t reg_val = *(volatile uint32_t *)(0x8204000);
 	*rstn= (bool)((reg_val >> 0) & 0x1);
-	*unlock_bitstream_section= (bool)((reg_val >> 1) & 0x1);
 	*sw_led_enable= (bool)((reg_val >> 2) & 0x1);
 	*sw_led= (bool)((reg_val >> 3) & 0x1);
 	*red_led= (bool)((reg_val >> 4) & 0x1);
@@ -46,12 +43,10 @@ getCsrConfig(
 	*debug_pin_0= (bool)((reg_val >> 7) & 0x1);
 	*debug_pin_1= (bool)((reg_val >> 8) & 0x1);
 	*debug_pin_2= (bool)((reg_val >> 9) & 0x1);
-	*reserved= (uint32_t)((reg_val >> 10) & 0x3fffff);
 }
 void
 setCsrConfig(
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		red_led,
@@ -59,12 +54,10 @@ setCsrConfig(
 	bool *		blue_led,
 	bool *		debug_pin_0,
 	bool *		debug_pin_1,
-	bool *		debug_pin_2,
-	uint32_t *	reserved)
+	bool *		debug_pin_2)
 {
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*rstn & 0x1) << 0;
-	reg_val |= ((uint32_t)*unlock_bitstream_section & 0x1) << 1;
 	reg_val |= ((uint32_t)*sw_led_enable & 0x1) << 2;
 	reg_val |= ((uint32_t)*sw_led & 0x1) << 3;
 	reg_val |= ((uint32_t)*red_led & 0x1) << 4;
@@ -73,7 +66,6 @@ setCsrConfig(
 	reg_val |= ((uint32_t)*debug_pin_0 & 0x1) << 7;
 	reg_val |= ((uint32_t)*debug_pin_1 & 0x1) << 8;
 	reg_val |= ((uint32_t)*debug_pin_2 & 0x1) << 9;
-	reg_val |= ((uint32_t)*reserved & 0x3fffff) << 10;
 
 	*(volatile uint32_t *)(0x8204000) = reg_val;
 }
@@ -173,4 +165,21 @@ setCsrTrapMtval(
 	reg_val |= ((uint32_t)*trap_mtval & 0xffffffff) << 0;
 
 	*(volatile uint32_t *)(0x8210008) = reg_val;
+}
+
+void
+getCsrBitstreamUnlock(
+	uint32_t *	key)
+{
+	uint32_t reg_val = *(volatile uint32_t *)(0x8214000);
+	*key= (uint32_t)((reg_val >> 0) & 0xffffffff);
+}
+void
+setCsrBitstreamUnlock(
+	uint32_t *	key)
+{
+	uint32_t reg_val = 0;
+	reg_val |= ((uint32_t)*key & 0xffffffff) << 0;
+
+	*(volatile uint32_t *)(0x8214000) = reg_val;
 }

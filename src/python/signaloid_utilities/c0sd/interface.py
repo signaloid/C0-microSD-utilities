@@ -40,8 +40,23 @@ SIGNALOID_SOC_STATUS_WAIT_FOR_COMMAND = 0
 SIGNALOID_SOC_STATUS_CALCULATING = 1
 SIGNALOID_SOC_STATUS_DONE = 2
 SIGNALOID_SOC_STATUS_INVALID_COMMAND = 3
+BITSTREAM_UNLOCK_KEY = 0x4B4C4E55
+BITSTREAM_UNLOCK_KEY_BYTES = b"UNLK"
 
 K_CALCULATE_NO_COMMAND = 0
+
+
+def to_printable(byte: int) -> str:
+    """Return the ASCII character for a byte, or '.' if non-printable."""
+    return chr(byte) if 32 <= byte <= 126 else "."
+
+
+def strip_trailing_bytes(data: bytes, value: int) -> bytes:
+    """Return ``data`` without its trailing run of ``value`` bytes."""
+    end = len(data)
+    while end > 0 and data[end - 1] == value:
+        end -= 1
+    return data[:end]
 
 
 class UnsupportedConfigureAction(Exception):
@@ -59,6 +74,23 @@ class UnsupportedConfigureAction(Exception):
         super().__init__(
             f"action '{action}' is not supported on {variant_name}.\n"
             f"Available actions: {', '.join(sorted(available))}"
+        )
+
+
+class BitstreamUnlockFailed(Exception):
+    """Raised when the bitstream section could not be unlocked.
+
+    On boards with a `bitstream_unlock` register the usual cause is that the
+    SoC core is still running: hardware forces the key to 0 while it is, so the
+    write is silently discarded.
+    """
+
+    def __init__(self, attempts: int, delay: float) -> None:
+        self.attempts = attempts
+        self.delay = delay
+        super().__init__(
+            f"failed to unlock the bitstream section after {attempts} attempts "
+            f"({delay}s apart). The SoC core must be stopped first."
         )
 
 
@@ -88,13 +120,156 @@ class C0SDBaseInterface:
 
     DEBUG_LOG_BUFFER_SIZE_BYTES = 512
 
+    BITSTREAM_UNLOCK_REGISTER_OFFSET: Optional[int] = None
+
+    # OTP text fields. The OTP region is memory-mapped per variant at
+    # OTP_OFFSET. The serial number and UUID live at fixed relative
+    # offsets within it.
+    OTP_OFFSET: Optional[int] = None
+    SERIAL_NUMBER_RELATIVE_OFFSET: int = 0x40
+    SERIAL_NUMBER_SIZE: int = 0x40
+    UUID_RELATIVE_OFFSET: int = 0x80
+    UUID_SIZE: int = 0x40
+
     # Map action name -> (value, mask, register, confirm). apply_configure_action does:
     #   if confirm: prompt the user via confirm_callback; abort if declined.
     #   new = (current & ~mask) | (value & mask)
-    # on the raw config register. Bitstream lock/unlock are ordinary
-    # entries — unlock-bitstream additionally has confirm=True.
+    # on the register named by the third element, so entries may target any
+    # register in the map. Bitstream lock/unlock target bitstream_unlock on
+    # boards that have one (see bitstream_lock_actions);
+    # unlock-bitstream additionally has confirm=True.
     # Subclasses override this with the per-variant table.
     SUPPORTED_ACTIONS: Dict[str, Tuple[int, int, int, bool]] = {}
+
+    @staticmethod
+    def bitstream_lock_actions(
+        unlock_key_offset: int,
+    ) -> Dict[str, Tuple[int, int, int, bool]]:
+        """Return the bitstream lock/unlock entries for ``SUPPORTED_ACTIONS``.
+
+        The standard scheme: unlocking writes the magic key to the
+        bitstream_unlock register, locking writes zero. Hardware forces
+        the key to 0 while the SoC core is running, so an unlock only takes
+        effect while the core is stopped and starting the core re-locks.
+
+        Subclasses spread this into their own ``SUPPORTED_ACTIONS`` so the
+        two actions stay in lock-step across variants while each supplies
+        its own register offset.
+        """
+        return {
+            "unlock-bitstream": (BITSTREAM_UNLOCK_KEY, 0xFFFFFFFF, unlock_key_offset, True),
+            "lock-bitstream":   (0x00000000,           0xFFFFFFFF, unlock_key_offset, False),
+        }
+
+    #	An unlock only takes once the SoC core has actually stopped, and a
+    #	core-stop issued moments earlier may still be draining, so retry rather
+    #	than failing on the first attempt.
+    BITSTREAM_UNLOCK_ATTEMPTS = 10
+    BITSTREAM_UNLOCK_RETRY_DELAY_S = 0.2
+
+    def unlock_bitstream(
+        self,
+        confirm_callback: Optional[Callable[[], bool]] = None,
+        verbose: bool = False,
+    ) -> None:
+        """Unlock the bitstream section, retrying until the key takes.
+
+        Each attempt writes the key and reads it back.
+
+        Raises:
+            BitstreamUnlockFailed: if the key has not taken after
+                ``BITSTREAM_UNLOCK_ATTEMPTS`` attempts.
+        """
+        entry = self.SUPPORTED_ACTIONS.get("unlock-bitstream")
+        if entry is None:
+            #	Let apply_configure_action raise the canonical error.
+            self.apply_configure_action(
+                "unlock-bitstream", confirm_callback, verbose
+            )
+            return
+
+        #	Gate on the confirmation once, here, rather than per attempt: a
+        #	retry must never re-prompt, and a decline must not be retried past.
+        _, _, _, confirm = entry
+        if confirm and (confirm_callback is None or not confirm_callback()):
+            if verbose:
+                print("Applying configure action unlock-bitstream aborted.")
+            return
+
+        for attempt in range(self.BITSTREAM_UNLOCK_ATTEMPTS):
+            self.apply_configure_action(
+                "unlock-bitstream", lambda: True, verbose
+            )
+            key = self.read_bitstream_unlock_key_bytes()
+            if key is None or key == BITSTREAM_UNLOCK_KEY_BYTES:
+                return
+            if attempt + 1 < self.BITSTREAM_UNLOCK_ATTEMPTS:
+                time.sleep(self.BITSTREAM_UNLOCK_RETRY_DELAY_S)
+
+        raise BitstreamUnlockFailed(
+            self.BITSTREAM_UNLOCK_ATTEMPTS, self.BITSTREAM_UNLOCK_RETRY_DELAY_S
+        )
+
+    def lock_bitstream(self, verbose: bool = False) -> None:
+        """Lock the bitstream section."""
+        self.apply_configure_action("lock-bitstream", lambda: True, verbose)
+
+    def get_bitstream_unlock_key(self) -> Optional[int]:
+        """Return the bitstream unlock key, or None if this board has none."""
+        raw = self.read_bitstream_unlock_key_bytes()
+        return None if raw is None else struct.unpack("<I", raw)[0]
+
+    def read_bitstream_unlock_key_bytes(self) -> Optional[bytes]:
+        """Return the raw 4 bytes of the unlock key, or None if unsupported."""
+        if self.BITSTREAM_UNLOCK_REGISTER_OFFSET is None:
+            return None
+        return self._read(self.BITSTREAM_UNLOCK_REGISTER_OFFSET, 4)
+
+    def _read_otp_text_field(
+        self, relative_offset: int, size: int
+    ) -> Optional[str]:
+        """Read and decode an ASCII text field from the OTP region.
+
+        The OTP text fields are ASCII, right-padded with 0xFF. An
+        all-0xFF field is unwritten and represents "not provisioned",
+        which is reported here as None.
+
+        Args:
+            relative_offset: Byte offset of the field within the OTP
+                region (relative to ``OTP_OFFSET``).
+            size: Length of the field in bytes.
+
+        Returns:
+            The decoded field text, or None if the variant exposes no OTP
+            region or the field is unprovisioned (all 0xFF).
+        """
+        if self.OTP_OFFSET is None:
+            return None
+        raw = self._read(self.OTP_OFFSET + relative_offset, size)
+        stripped = strip_trailing_bytes(raw, 0xFF)
+        if not stripped:
+            return None
+        return "".join(to_printable(byte) for byte in stripped)
+
+    def get_serial_number(self) -> Optional[str]:
+        """Return the device serial number from the OTP, or None.
+
+        None is returned when the variant exposes no OTP region or the
+        serial-number field is unprovisioned.
+        """
+        return self._read_otp_text_field(
+            self.SERIAL_NUMBER_RELATIVE_OFFSET, self.SERIAL_NUMBER_SIZE
+        )
+
+    def get_uuid(self) -> Optional[str]:
+        """Return the device UUID from the OTP, or None.
+
+        None is returned when the variant exposes no OTP region or the
+        UUID field is unprovisioned.
+        """
+        return self._read_otp_text_field(
+            self.UUID_RELATIVE_OFFSET, self.UUID_SIZE
+        )
 
     def __init__(
         self, target_device: str,
@@ -347,6 +522,7 @@ class C0SDBaseInterface:
             print(f"Applied configure action: {action}")
 
     def reset_core(self, timeout: float = 1.0, verbose: bool = False) -> None:
+        """Stop the core, wait, then start it again."""
         self.apply_configure_action("core-stop", verbose=verbose)
         time.sleep(timeout)
         self.apply_configure_action("core-start", verbose=verbose)
@@ -515,16 +691,21 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         self.TRAP_MCAUSE_REGISTER_OFFSET = csr.TrapMcause.ADDR
         self.TRAP_MEPC_REGISTER_OFFSET = csr.TrapMepc.ADDR
         self.TRAP_MTVAL_REGISTER_OFFSET = csr.TrapMtval.ADDR
+        self.BITSTREAM_UNLOCK_REGISTER_OFFSET = csr.BitstreamUnlock.ADDR
 
         self.MMIO_BUFFER_OFFSET = top.IoBuff.BOTTOM_ENTRY
         self.MMIO_BUFFER_SIZE_BYTES = top.IoBuff.SIZE_BYTES
+
+        self.OTP_OFFSET = top.FlashOtp.BOTTOM_ENTRY
+        self.OTP_SIZE = top.FlashOtp.SIZE_BYTES
 
         config = self.CONFIG_REGISTER_OFFSET
         self.SUPPORTED_ACTIONS: Dict[str, Tuple[int, int, int, bool]] = {
             "core-start":       (0x00000001, 0x00000001, config, False),
             "core-stop":        (0x00000000, 0x00000001, config, False),
-            "unlock-bitstream": (0x00000002, 0x00000002, config, True),
-            "lock-bitstream":   (0x00000000, 0x00000002, config, False),
+            **self.bitstream_lock_actions(
+                self.BITSTREAM_UNLOCK_REGISTER_OFFSET
+            ),
             "sw-led-on":        (0x0000000C, 0x0000000C, config, False),
             "sw-led-off":       (0x00000000, 0x0000000C, config, False),
             "red-led-on":       (0x00000010, 0x00000010, config, False),
@@ -548,14 +729,13 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         """Read the config register and unpack its boolean fields.
 
         Returns:
-            Tuple in declaration order: (rstn, unlock_bitstream_section,
-            sw_led_enable, sw_led, red_led, green_led, blue_led,
-            debug_pin_0, debug_pin_1, debug_pin_2).
+            Tuple in declaration order: (rstn, sw_led_enable, sw_led,
+            red_led, green_led, blue_led, debug_pin_0, debug_pin_1,
+            debug_pin_2).
         """
         value = self.get_config_register()
         return (
             bool(value & 0x001),
-            bool(value & 0x002),
             bool(value & 0x004),
             bool(value & 0x008),
             bool(value & 0x010),
@@ -569,7 +749,6 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
     def set_config_register_unpacked(
         self,
         rstn: bool = False,
-        unlock_bitstream_section: bool = False,
         sw_led_enable: bool = False,
         sw_led: bool = False,
         red_led: bool = False,
@@ -587,7 +766,6 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
 
         Args:
             rstn: Reset CPU (active low).
-            unlock_bitstream_section: Unlock bitstream section for flashing.
             sw_led_enable: Enable software management of the onboard red LED.
             sw_led: Onboard red LED (requires sw_led_enable=True).
             red_led: Red LED control.
@@ -599,7 +777,6 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         """
         value = (
             (rstn << 0)
-            | (unlock_bitstream_section << 1)
             | (sw_led_enable << 2)
             | (sw_led << 3)
             | (red_led << 4)
@@ -614,7 +791,6 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
     def modify_config_register(
         self,
         rstn: Optional[bool] = None,
-        unlock_bitstream_section: Optional[bool] = None,
         sw_led_enable: Optional[bool] = None,
         sw_led: Optional[bool] = None,
         red_led: Optional[bool] = None,
@@ -632,7 +808,6 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
 
         Args:
             rstn: Reset CPU (active low).
-            unlock_bitstream_section: Unlock bitstream section for flashing.
             sw_led_enable: Enable software management of the onboard red LED.
             sw_led: Onboard red LED (requires sw_led_enable=True).
             red_led: Red LED control.
@@ -644,7 +819,6 @@ class C0microSDPlusInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         """
         fields = (
             (rstn, 0),
-            (unlock_bitstream_section, 1),
             (sw_led_enable, 2),
             (sw_led, 3),
             (red_led, 4),
@@ -704,16 +878,21 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         self.TRAP_MCAUSE_REGISTER_OFFSET = csr.TrapMcause.ADDR
         self.TRAP_MEPC_REGISTER_OFFSET = csr.TrapMepc.ADDR
         self.TRAP_MTVAL_REGISTER_OFFSET = csr.TrapMtval.ADDR
+        self.BITSTREAM_UNLOCK_REGISTER_OFFSET = csr.BitstreamUnlock.ADDR
 
         self.MMIO_BUFFER_OFFSET = top.IoBuff.BOTTOM_ENTRY
         self.MMIO_BUFFER_SIZE_BYTES = top.IoBuff.SIZE_BYTES
+
+        self.OTP_OFFSET = top.FlashOtp.BOTTOM_ENTRY
+        self.OTP_SIZE = top.FlashOtp.SIZE_BYTES
 
         config = self.CONFIG_REGISTER_OFFSET
         self.SUPPORTED_ACTIONS: Dict[str, Tuple[int, int, int, bool]] = {
             "core-start":       (0x00000001, 0x00000001, config, False),
             "core-stop":        (0x00000000, 0x00000001, config, False),
-            "unlock-bitstream": (0x00000002, 0x00000002, config, True),
-            "lock-bitstream":   (0x00000000, 0x00000002, config, False),
+            **self.bitstream_lock_actions(
+                self.BITSTREAM_UNLOCK_REGISTER_OFFSET
+            ),
             "sw-led-on":        (0x0000000C, 0x0000000C, config, False),
             "sw-led-off":       (0x00000000, 0x0000000C, config, False),
             "green-led-on":     (0x00000010, 0x00000010, config, False),
@@ -729,13 +908,12 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         """Read the config register and unpack its boolean fields.
 
         Returns:
-            Tuple in declaration order: (rstn, unlock_bitstream_section,
-            sw_led_enable, sw_led, green_led, debug_pin_0).
+            Tuple in declaration order: (rstn, sw_led_enable, sw_led,
+            green_led, debug_pin_0).
         """
         value = self.get_config_register()
         return (
             bool(value & 0x01),
-            bool(value & 0x02),
             bool(value & 0x04),
             bool(value & 0x08),
             bool(value & 0x10),
@@ -745,7 +923,6 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
     def set_config_register_unpacked(
         self,
         rstn: bool = False,
-        unlock_bitstream_section: bool = False,
         sw_led_enable: bool = False,
         sw_led: bool = False,
         green_led: bool = False,
@@ -759,7 +936,6 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
 
         Args:
             rstn: Reset CPU (active low).
-            unlock_bitstream_section: Unlock bitstream section for flashing.
             sw_led_enable: Enable software management of the onboard red LED.
             sw_led: Onboard red LED (requires sw_led_enable=True).
             green_led: Green LED control.
@@ -767,7 +943,6 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         """
         value = (
             (rstn << 0)
-            | (unlock_bitstream_section << 1)
             | (sw_led_enable << 2)
             | (sw_led << 3)
             | (green_led << 4)
@@ -778,7 +953,6 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
     def modify_config_register(
         self,
         rstn: Optional[bool] = None,
-        unlock_bitstream_section: Optional[bool] = None,
         sw_led_enable: Optional[bool] = None,
         sw_led: Optional[bool] = None,
         green_led: Optional[bool] = None,
@@ -792,7 +966,6 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
 
         Args:
             rstn: Reset CPU (active low).
-            unlock_bitstream_section: Unlock bitstream section for flashing.
             sw_led_enable: Enable software management of the onboard red LED.
             sw_led: Onboard red LED (requires sw_led_enable=True).
             green_led: Green LED control.
@@ -800,7 +973,6 @@ class C0SDInterface(SDConfigRegisterMixin, C0SDBaseInterface):
         """
         fields = (
             (rstn, 0),
-            (unlock_bitstream_section, 1),
             (sw_led_enable, 2),
             (sw_led, 3),
             (green_led, 4),

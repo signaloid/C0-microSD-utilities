@@ -37,12 +37,12 @@ typedef union
 	struct
 	{
 		uint32_t    rstn                    : 1;
-		uint32_t    unlockBitstreamSection  : 1;
+		uint32_t                            : 1;	/* bit 1 unassigned */
 		uint32_t    swLedEnable             : 1;
 		uint32_t    swLed                   : 1;
 		uint32_t    greenLed                : 1;
 		uint32_t    debugPin0               : 1;
-		uint32_t    reserved                : 26;
+		uint32_t                            : 26;	/* bits 31:6 unassigned */
 	} bits;
 } C0HALConfigRegister;
 

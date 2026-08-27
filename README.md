@@ -108,7 +108,7 @@ usage: C0_SD_toolkit.py [-h] [--variant {C0-microSD+,C0-SD}]
                         [--regmap-path REGMAP_PATH]
                         target_device <command> ...
 
-Signaloid C0-SD toolkit. Version 2.3
+Signaloid C0-SD toolkit. Version 2.4
 
 positional arguments:
   target_device         Target device path
@@ -148,24 +148,16 @@ resolved as follows:
 Detection messages and warnings are written to `stderr`, so they do not interfere with command output.
 
 ### The `info` command
-`info` decodes and prints the bitstream's embedded metadata (compute module type, creation date,
-bitstream type, metadata-schema version, size, and CRC). By default it reads only the metadata prefix
-and **does not** run CRC verification, because the default device configuration exposes only the first
-4 KiB of flash and locks the rest.
+`info` prints the device serial number and UUID, decodes and prints the bitstream's embedded metadata 
+(compute module type, creation date, bitstream type, metadata-schema version, size, and CRC), and verifies the bitstream CRC.
 
-Pass `--verify` to check the bitstream CRC: the toolkit unlocks the bitstream section, reads and
-verifies the full bitstream, then re-locks the section (it is always re-locked afterwards, even if
-verification fails).
 
 ```
-usage: C0_SD_toolkit.py target_device info [-h] [--raw] [--verify]
+usage: C0_SD_toolkit.py target_device info [-h] [--raw]
 
 options:
   -h, --help  show this help message and exit
   --raw       Print the raw JSON metadata object instead of labelled fields.
-  --verify    Unlock the bitstream section, verify its CRC, then re-lock it
-              (off by default; the locked device exposes only the first 4 KiB
-              of flash).
 ```
 
 ### Examples:
@@ -173,14 +165,9 @@ The following examples assume the target device is located at `/dev/sda`. They o
 the toolkit auto-detects the module from the device; pass `--variant=C0-microSD+` or
 `--variant=C0-SD` to force a specific one.
 
-Print target device info (metadata only, no CRC verification):
+Print target device info and verify the bitstream CRC:
 ```sh
 sudo python3 C0_SD_toolkit.py /dev/sda info
-```
-
-Print device info and verify the bitstream CRC (unlocks then re-locks the bitstream section):
-```sh
-sudo python3 C0_SD_toolkit.py /dev/sda info --verify
 ```
 
 Flash new Signaloid SoC application binary:

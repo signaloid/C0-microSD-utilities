@@ -94,7 +94,6 @@ void hostUtilsSetSignaloidSoCCommandRegister(char *  device, uint32_t command);
  *
  *	@param	device				device path of C0-SD
  *	@param	rstn				return value: Reset signal of SoC core
- *	@param	unlockBitstreamSection	return value: Bitstream section of SPI flash is unlocked
  *	@param	swLedEnable			return value: Software control of onboard LED is enabled
  *	@param	swLed				return value: Software control bit of onboard LED
  *	@param	greenLed			return value: Green LED control bit
@@ -104,7 +103,6 @@ void
 hostUtilsGetSignaloidSoCConfigRegisterUnpacked(
 	char *  device,
 	bool *  rstn,
-	bool *  unlockBitstreamSection,
 	bool *  swLedEnable,
 	bool *  swLed,
 	bool *  greenLed,
@@ -115,7 +113,6 @@ hostUtilsGetSignaloidSoCConfigRegisterUnpacked(
  *
  *	@param	device				device path of C0-SD
  *	@param	rstn				Reset signal of SoC core
- *	@param	unlockBitstreamSection	Unlock bitstream section of SPI flash
  *	@param	swLedEnable			Enable software control of onboard LED
  *	@param	swLed				Software control bit of onboard LED
  *	@param	greenLed			Green LED control bit
@@ -125,7 +122,6 @@ void
 hostUtilsSetSignaloidSoCConfigRegisterUnpacked(
 	char *  device,
 	bool rstn,
-	bool unlockBitstreamSection,
 	bool swLedEnable,
 	bool swLed,
 	bool greenLed,

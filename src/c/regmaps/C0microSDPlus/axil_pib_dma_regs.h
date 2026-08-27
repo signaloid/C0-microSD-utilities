@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "axil_pib_dma_reg_types.h"
