@@ -21,7 +21,6 @@ void
 unpackCsrConfig(
 	uint32_t *	registerValue,
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		red_led,
@@ -29,14 +28,12 @@ unpackCsrConfig(
 	bool *		blue_led,
 	bool *		debug_pin_0,
 	bool *		debug_pin_1,
-	bool *		debug_pin_2,
-	uint32_t *	reserved
+	bool *		debug_pin_2
 );
 void
 packCsrConfig(
 	uint32_t *	registerValue,
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		red_led,
@@ -44,8 +41,7 @@ packCsrConfig(
 	bool *		blue_led,
 	bool *		debug_pin_0,
 	bool *		debug_pin_1,
-	bool *		debug_pin_2,
-	uint32_t *	reserved
+	bool *		debug_pin_2
 );
 
 void
@@ -107,4 +103,15 @@ void
 packCsrTrapMtval(
 	uint32_t *	registerValue,
 	uint32_t *	trap_mtval
+);
+
+void
+unpackCsrBitstreamUnlock(
+	uint32_t *	registerValue,
+	uint32_t *	key
+);
+void
+packCsrBitstreamUnlock(
+	uint32_t *	registerValue,
+	uint32_t *	key
 );

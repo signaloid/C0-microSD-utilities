@@ -59,7 +59,7 @@ hostUtilsReadFromC0microSD(char *  device, void *  destBuffer, size_t bufferSize
 	 *	Opening and closing the device for each transaction is needed to force flush
 	 */
 	fd = open(device, O_RDONLY | O_SYNC | O_DSYNC);
-	
+
 	if (fd == -1)
 	{
 		perror("Error opening device");
@@ -95,7 +95,7 @@ hostUtilsWriteToC0microSD(char *  device, void *  sourceBuffer, size_t bufferSiz
 	 *	Opening and closing the device for each transaction is needed to force flush
 	 */
 	fd = open(device, O_WRONLY | O_SYNC | O_DSYNC);
-	
+
 	if (fd == -1)
 	{
 		perror("Error opening device");
@@ -115,7 +115,7 @@ hostUtilsWriteToC0microSD(char *  device, void *  sourceBuffer, size_t bufferSiz
 	{
 		perror("Error writing data to the device");
 	}
-	
+
 	close(fd);
 	return result;
 }
@@ -211,7 +211,7 @@ hostUtilsAssertSignaloidSoCStatus(C0microSDConfigurationStatus status)
 	{
 		fprintf(stderr,"Error: Device is not a C0-microSD.\n");
 		exit(EXIT_FAILURE);
-		
+
 	}
 	else if (status.configuration != kC0microSDConfigurationSignaloidSoC)
 	{
@@ -225,7 +225,7 @@ hostUtilsAssertSignaloidSoCStatus(C0microSDConfigurationStatus status)
 		fprintf(stderr, "Error: Device is in configuration switching mode. ");
 		fprintf(stderr, "Power-cycle the device and try again.\n");
 		exit(EXIT_FAILURE);
-	}	
+	}
 }
 
 void
@@ -234,7 +234,7 @@ hostUtilsWriteSignaloidSoCMOSIBuffer(char *  device, void *  sourceBuffer)
 	ssize_t		res;
 	res = hostUtilsWriteToC0microSD(device, sourceBuffer, kSignaloidSoCCommonConstantsMOSIBufferSizeBytes, kSignaloidSoCHostConstantsMOSIBufferOffset);
 	if (res != kSignaloidSoCCommonConstantsMOSIBufferSizeBytes)
-	{	
+	{
 		exit(EXIT_FAILURE);
 	}
 }
@@ -245,7 +245,7 @@ hostUtilsReadSignaloidSoCMISOBuffer(char *  device, void *  destBuffer)
 	ssize_t		res;
 	res = hostUtilsReadFromC0microSD(device, destBuffer, kSignaloidSoCCommonConstantsMISOBufferSizeBytes, kSignaloidSoCHostConstantsMISOBufferOffset);
 	if (res != kSignaloidSoCCommonConstantsMISOBufferSizeBytes)
-	{	
+	{
 		exit(EXIT_FAILURE);
 	}
 }
@@ -257,7 +257,7 @@ hostUtilsReadSignaloidSoCStatusRegister(char *  device)
 	ssize_t			res;
 	res = hostUtilsReadFromC0microSD(device, (void *) &status, sizeof(uint32_t), kSignaloidSoCHostConstantsStatusOffset);
 	if (res != sizeof(uint32_t))
-	{	
+	{
 		exit(EXIT_FAILURE);
 	}
 	return status;
@@ -270,7 +270,7 @@ hostUtilsReadSignaloidSoCSoCControlRegister(char *  device)
 	ssize_t		res;
 	res = hostUtilsReadFromC0microSD(device, (void *) &socControl, sizeof(uint32_t), kSignaloidSoCHostConstantsSoCControlOffset);
 	if (res != sizeof(uint32_t))
-	{	
+	{
 		exit(EXIT_FAILURE);
 	}
 	return socControl;
@@ -282,7 +282,7 @@ hostUtilsSendSignaloidSoCCommand(char *  device, uint32_t command)
 	ssize_t res;
 	res = hostUtilsWriteToC0microSD(device, (void *) &command, sizeof(uint32_t), kSignaloidSoCHostConstantsCommandOffset);
 	if (res != sizeof(uint32_t))
-	{	
+	{
 		exit(EXIT_FAILURE);
 	}
 }

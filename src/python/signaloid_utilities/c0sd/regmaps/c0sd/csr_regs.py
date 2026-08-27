@@ -28,10 +28,6 @@ class Csr:
             LSB = 0
             MSB = 0
             MASK = 0x1
-        class UnlockBitstreamSection:
-            LSB = 1
-            MSB = 1
-            MASK = 0x1
         class SwLedEnable:
             LSB = 2
             MSB = 2
@@ -48,33 +44,25 @@ class Csr:
             LSB = 5
             MSB = 5
             MASK = 0x1
-        class Reserved:
-            LSB = 6
-            MSB = 31
-            MASK = 0x3ffffff
 
         @staticmethod
-        def unpack(reg_val: int) -> tuple[int, int, int, int, int, int, int]:
+        def unpack(reg_val: int) -> tuple[int, int, int, int, int]:
             f_rstn = (reg_val >> 0) & 0x1
-            f_unlock_bitstream_section = (reg_val >> 1) & 0x1
             f_sw_led_enable = (reg_val >> 2) & 0x1
             f_sw_led = (reg_val >> 3) & 0x1
             f_green_led = (reg_val >> 4) & 0x1
             f_debug_pin_0 = (reg_val >> 5) & 0x1
-            f_reserved = (reg_val >> 6) & 0x3ffffff
-            return f_rstn, f_unlock_bitstream_section, f_sw_led_enable, f_sw_led, f_green_led, f_debug_pin_0, f_reserved
+            return f_rstn, f_sw_led_enable, f_sw_led, f_green_led, f_debug_pin_0
 
 
         @staticmethod
-        def pack(f_rstn: int, f_unlock_bitstream_section: int, f_sw_led_enable: int, f_sw_led: int, f_green_led: int, f_debug_pin_0: int, f_reserved: int) -> int:
+        def pack(f_rstn: int, f_sw_led_enable: int, f_sw_led: int, f_green_led: int, f_debug_pin_0: int) -> int:
             reg_val = 0
             reg_val |= (f_rstn & 0x1) << 0
-            reg_val |= (f_unlock_bitstream_section & 0x1) << 1
             reg_val |= (f_sw_led_enable & 0x1) << 2
             reg_val |= (f_sw_led & 0x1) << 3
             reg_val |= (f_green_led & 0x1) << 4
             reg_val |= (f_debug_pin_0 & 0x1) << 5
-            reg_val |= (f_reserved & 0x3ffffff) << 6
             return reg_val
     class Status:
         ADDR = 0x10008000
@@ -207,4 +195,22 @@ class Csr:
         def pack(f_trap_mtval: int) -> int:
             reg_val = 0
             reg_val |= (f_trap_mtval & 0xffffffff) << 0
+            return reg_val
+    class BitstreamUnlock:
+        ADDR = 0x10014000
+        class Key:
+            LSB = 0
+            MSB = 31
+            MASK = 0xffffffff
+
+        @staticmethod
+        def unpack(reg_val: int) -> int:
+            f_key = (reg_val >> 0) & 0xffffffff
+            return f_key
+
+
+        @staticmethod
+        def pack(f_key: int) -> int:
+            reg_val = 0
+            reg_val |= (f_key & 0xffffffff) << 0
             return reg_val

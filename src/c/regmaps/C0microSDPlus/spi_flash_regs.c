@@ -6,26 +6,26 @@
 
 
 uint32_t
-getSpiFlashBitstreamEntry(uint32_t offset)
+getSpiFlashBitstreamEntry(size_t offset)
 {
 	return *(volatile uint32_t *)(0x0 + offset);
 }
 
 void
-setSpiFlashBitstreamEntry(uint32_t offset, uint32_t *  value)
+setSpiFlashBitstreamEntry(size_t offset, uint32_t *  value)
 {
 	*(volatile uint32_t *)(0x0 + offset) = *value;
 }
 
 
 uint32_t
-getSpiFlashUserDataEntry(uint32_t offset)
+getSpiFlashUserDataEntry(size_t offset)
 {
 	return *(volatile uint32_t *)(0x200000 + offset);
 }
 
 void
-setSpiFlashUserDataEntry(uint32_t offset, uint32_t *  value)
+setSpiFlashUserDataEntry(size_t offset, uint32_t *  value)
 {
 	*(volatile uint32_t *)(0x200000 + offset) = *value;
 }

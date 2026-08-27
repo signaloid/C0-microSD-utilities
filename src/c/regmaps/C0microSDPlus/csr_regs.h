@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -15,7 +16,6 @@ void	setCsrCommand(
 
 void	getCsrConfig(
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		red_led,
@@ -23,12 +23,10 @@ void	getCsrConfig(
 	bool *		blue_led,
 	bool *		debug_pin_0,
 	bool *		debug_pin_1,
-	bool *		debug_pin_2,
-	uint32_t *	reserved
+	bool *		debug_pin_2
 );
 void	setCsrConfig(
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		red_led,
@@ -36,8 +34,7 @@ void	setCsrConfig(
 	bool *		blue_led,
 	bool *		debug_pin_0,
 	bool *		debug_pin_1,
-	bool *		debug_pin_2,
-	uint32_t *	reserved
+	bool *		debug_pin_2
 );
 
 void	getCsrStatus(
@@ -79,4 +76,11 @@ void	getCsrTrapMtval(
 );
 void	setCsrTrapMtval(
 	uint32_t *	trap_mtval
+);
+
+void	getCsrBitstreamUnlock(
+	uint32_t *	key
+);
+void	setCsrBitstreamUnlock(
+	uint32_t *	key
 );

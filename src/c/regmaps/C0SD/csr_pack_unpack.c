@@ -27,41 +27,33 @@ void
 unpackCsrConfig(
 	uint32_t *	registerValue,
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		green_led,
-	bool *		debug_pin_0,
-	uint32_t *	reserved)
+	bool *		debug_pin_0)
 {
 	uint32_t reg_val = *registerValue;
 	*rstn= (bool)((reg_val >> 0) & 0x1);
-	*unlock_bitstream_section= (bool)((reg_val >> 1) & 0x1);
 	*sw_led_enable= (bool)((reg_val >> 2) & 0x1);
 	*sw_led= (bool)((reg_val >> 3) & 0x1);
 	*green_led= (bool)((reg_val >> 4) & 0x1);
 	*debug_pin_0= (bool)((reg_val >> 5) & 0x1);
-	*reserved= (uint32_t)((reg_val >> 6) & 0x3ffffff);
 }
 void
 packCsrConfig(
 	uint32_t *	registerValue,
 	bool *		rstn,
-	bool *		unlock_bitstream_section,
 	bool *		sw_led_enable,
 	bool *		sw_led,
 	bool *		green_led,
-	bool *		debug_pin_0,
-	uint32_t *	reserved)
+	bool *		debug_pin_0)
 {
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*rstn & 0x1) << 0;
-	reg_val |= ((uint32_t)*unlock_bitstream_section & 0x1) << 1;
 	reg_val |= ((uint32_t)*sw_led_enable & 0x1) << 2;
 	reg_val |= ((uint32_t)*sw_led & 0x1) << 3;
 	reg_val |= ((uint32_t)*green_led & 0x1) << 4;
 	reg_val |= ((uint32_t)*debug_pin_0 & 0x1) << 5;
-	reg_val |= ((uint32_t)*reserved & 0x3ffffff) << 6;
 
 	*registerValue = reg_val;
 }
@@ -185,6 +177,25 @@ packCsrTrapMtval(
 {
 	uint32_t reg_val = 0;
 	reg_val |= ((uint32_t)*trap_mtval & 0xffffffff) << 0;
+
+	*registerValue = reg_val;
+}
+
+void
+unpackCsrBitstreamUnlock(
+	uint32_t *	registerValue,
+	uint32_t *	key)
+{
+	uint32_t reg_val = *registerValue;
+	*key= (uint32_t)((reg_val >> 0) & 0xffffffff);
+}
+void
+packCsrBitstreamUnlock(
+	uint32_t *	registerValue,
+	uint32_t *	key)
+{
+	uint32_t reg_val = 0;
+	reg_val |= ((uint32_t)*key & 0xffffffff) << 0;
 
 	*registerValue = reg_val;
 }

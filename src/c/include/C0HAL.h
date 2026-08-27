@@ -125,16 +125,6 @@ C0HALSetConfigRegisterRstn(bool state);
 
 #if BUILD_FOR == SIGNALOID_C0_MICROSD_PLUS || BUILD_FOR == SIGNALOID_C0_SD
 /**
- * Set the bitstream-section unlock bit in the config register.
- *
- * @param state: New value for the unlock_bitstream_section bit.
- */
-void
-C0HALSetConfigRegisterUnlockBitstreamSection(bool state);
-#endif
-
-#if BUILD_FOR == SIGNALOID_C0_MICROSD_PLUS || BUILD_FOR == SIGNALOID_C0_SD
-/**
  * Enable software management of the onboard LED in the config register.
  *
  * @param state: New value for the sw_led_enable bit.

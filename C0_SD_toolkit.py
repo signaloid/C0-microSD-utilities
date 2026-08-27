@@ -25,6 +25,7 @@ import sys
 import os
 import json
 import re
+import time
 from typing import Any, Optional, Type
 
 from pathlib import Path
@@ -37,7 +38,7 @@ from signaloid_utilities.c0sd.interface import (
     UnsupportedConfigureAction,
 )
 
-APP_VERSION = "2.3"  # Application version
+APP_VERSION = "2.5"  # Application version
 MAX_FLASH_ATTEMPTS = 5  # Maximum flashing attempts
 
 # Known bitstream-metadata keys and their display labels, in print order.
@@ -88,19 +89,31 @@ class _C0SDToolkitMixin:
                 print("Error: The data do not match.")
         return False
 
-    def print_bitstream_information(
-        self, offset, raw: bool = False, verify: bool = False
-    ) -> Optional[dict[str, Any]]:
-        """Decode and print the bitstream metadata; optionally CRC-verify.
+    def print_device_identity(self) -> None:
+        """Print the device serial number and UUID read from the OTP.
 
-        Delegates reading/decoding to the interface (read_bitstream_metadata
-        / verify_bitstream_crc) and handles only presentation here. CRC
-        verification runs only when ``verify`` is set: the default device
-        configuration exposes just the first 4 KiB of flash and locks the
-        rest, so verification must unlock the bitstream section, read it,
-        and re-lock it. Returns the decoded metadata dict, or None if the
-        bitstream carries no Signaloid metadata prefix.
+        A blank (all-0xFF) field is reported as "not provisioned". Any
+        device-read error is caught and reported without aborting, so a
+        failure to read the OTP never suppresses the bitstream information
+        that follows. Prints nothing on a variant that exposes no OTP
+        region.
         """
+        if self.OTP_OFFSET is None:
+            return
+        try:
+            serial_number = self.get_serial_number()
+            uuid = self.get_uuid()
+        except OSError as error:
+            print(f"Unable to read device identity from OTP: {error}")
+            return
+        print(f"Device Serial Number: {serial_number or 'not provisioned'}")
+        print(f"Device UUID: {uuid or 'not provisioned'}")
+        print()
+
+    def print_bitstream_information(
+        self, offset, raw: bool = False
+    ) -> Optional[dict[str, Any]]:
+        """Decode and print the bitstream metadata and verify its CRC."""
         try:
             meta = self.read_bitstream_metadata(offset)
         except ValueError:
@@ -115,40 +128,21 @@ class _C0SDToolkitMixin:
         else:
             self._print_bitstream_metadata(meta)
 
-        if verify:
-            self._verify_and_report(offset, meta)
-        else:
-            print(
-                "    Bitstream CRC verification: skipped "
-                "(pass --verify to unlock and check)"
-            )
+        self._verify_and_report(offset, meta)
         return meta
 
     def _verify_and_report(self, offset, meta) -> None:
-        """Unlock the bitstream section, verify its CRC, print the result,
-        then re-lock the section.
-
-        The default device configuration exposes only the first 4 KiB of
-        flash and locks the rest, so the CRC-covered payload is unreadable
-        until the bitstream section is unlocked. The section is always
-        re-locked afterwards, even if verification fails or errors.
-        """
-        print("    Unlocking bitstream section...")
-        self.apply_configure_action("unlock-bitstream", lambda: True)
-        try:
-            crc_pass = self.verify_bitstream_crc(offset, meta)
-            if crc_pass is None:
-                print(
-                    "    Bitstream CRC verification: "
-                    "unable to verify (no CRC field)"
-                )
-            elif crc_pass:
-                print("    Bitstream CRC verification: PASS")
-            else:
-                print("    Bitstream CRC verification: FAIL")
-        finally:
-            print("    Re-locking bitstream section...")
-            self.apply_configure_action("lock-bitstream", lambda: True)
+        """Verify the bitstream CRC and print the result."""
+        crc_pass = self.verify_bitstream_crc(offset, meta)
+        if crc_pass is None:
+            print(
+                "    Bitstream CRC verification: "
+                "unable to verify (no CRC field)"
+            )
+        elif crc_pass:
+            print("    Bitstream CRC verification: PASS")
+        else:
+            print("    Bitstream CRC verification: FAIL")
 
     def _print_bitstream_metadata(self, meta: dict[str, Any]) -> None:
         """Print known metadata fields with friendly labels, then any
@@ -357,9 +351,10 @@ def _exit_for_exception(e: Exception) -> None:
 def handle_info(args):
     try:
         toolkit = _make_toolkit(args)
+        toolkit.print_device_identity()
         print("Reading bitstream:")
         toolkit.print_bitstream_information(
-            toolkit.BITSTREAM_OFFSET, raw=args.raw, verify=args.verify
+            toolkit.BITSTREAM_OFFSET, raw=args.raw
         )
         print("Done.")
         exit(os.EX_OK)
@@ -380,12 +375,16 @@ def handle_flash_application(args):
     try:
         toolkit = _make_toolkit(args)
         file_data = open_and_pad_file(args.app_path, args.p)
+        print("Stopping the Signaloid SoC...")
+        toolkit.apply_configure_action("core-stop", lambda: True)
+        time.sleep(0.5)  # Allow time for the SoC to stop
         print("Flashing Signaloid SoC application...")
-        toolkit.flash_and_verify(
+        if not toolkit.flash_and_verify(
             file_data,
             toolkit.APPLICATION_BINARY_OFFSET,
             MAX_FLASH_ATTEMPTS
-        )
+        ):
+            exit(os.EX_SOFTWARE)
     except Exception as e:
         _exit_for_exception(e)
 
@@ -397,14 +396,20 @@ def handle_flash_bitstream(args):
         if not confirm_action():
             print("Aborting.")
             exit(os.EX_USAGE)
-        toolkit.apply_configure_action("unlock-bitstream", lambda: True)
+        print("Stopping the Signaloid SoC...")
+        toolkit.apply_configure_action("core-stop", lambda: True)
+        print("Unlocking the bitstream section...")
+        toolkit.unlock_bitstream(lambda: True)
         print("Flashing bitstream...")
-        toolkit.flash_and_verify(
+        flashed = toolkit.flash_and_verify(
             file_data,
             toolkit.BITSTREAM_OFFSET,
             MAX_FLASH_ATTEMPTS
         )
-        toolkit.apply_configure_action("lock-bitstream", lambda: True)
+        print("Locking the bitstream section...")
+        toolkit.lock_bitstream()
+        if not flashed:
+            exit(os.EX_SOFTWARE)
     except Exception as e:
         _exit_for_exception(e)
 
@@ -412,7 +417,12 @@ def handle_flash_bitstream(args):
 def handle_configuration(args):
     try:
         toolkit = _make_toolkit(args)
-        toolkit.apply_configure_action(args.action, confirm_action)
+        if args.action == "unlock-bitstream":
+            toolkit.unlock_bitstream(confirm_action)
+        elif args.action == "lock-bitstream":
+            toolkit.lock_bitstream()
+        else:
+            toolkit.apply_configure_action(args.action, confirm_action)
     except UnsupportedConfigureAction as e:
         print(f"Error: {e}", file=sys.stderr)
         exit(os.EX_USAGE)
@@ -424,8 +434,7 @@ def handle_configuration(args):
 # help epilog so a single `--help` lists every capability of the tool.
 _COMMAND_DESCRIPTIONS: list[tuple[str, str]] = [
     ("info",
-     "Decode and print bitstream metadata (CRC verification with "
-     "--verify, which unlocks/re-locks the bitstream section)."),
+     "Decode and print bitstream metadata, and verify the bitstream CRC."),
     ("status",
      "Print the COMMAND, CONFIG and STATUS registers "
      "(plus SD_CONFIG where present)."),
@@ -433,8 +442,8 @@ _COMMAND_DESCRIPTIONS: list[tuple[str, str]] = [
      "Flash an application binary to the device's user-data flash "
      "region (optionally zero-padded to SIZE)."),
     ("flash-bitstream <bs_path> [-p SIZE]",
-     "Unlock the bitstream region, flash a bitstream, then re-lock it "
-     "(optionally zero-padded to SIZE)."),
+     "Stop the SoC core, unlock the bitstream region, flash a bitstream, "
+     "then re-lock it (optionally zero-padded to SIZE)."),
     ("configure / config <action>",
      "Apply a single configuration action (see 'configure actions' "
      "below)."),
@@ -526,13 +535,6 @@ def create_parser(selected_variant: Optional[str] = None):
         "--raw",
         action="store_true",
         help="Print the raw JSON metadata object instead of labelled fields."
-    )
-    p_info.add_argument(
-        "--verify",
-        action="store_true",
-        help="Unlock the bitstream section, verify its CRC, then re-lock it "
-             "(off by default; the locked device exposes only the first "
-             "4 KiB of flash)."
     )
     p_info.set_defaults(func=handle_info)
 

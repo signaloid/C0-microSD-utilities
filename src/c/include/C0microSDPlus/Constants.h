@@ -56,8 +56,7 @@ enum SignaloidSoCConstants
 };
 
 /*
- *	The following constants are used to flash new applications and
- *	bootloaders to the C0-microSD+
+ *	The following constants are used to flash new applications to the C0-microSD+
  */
 enum SignaloidC0microSDPlusConstants
 {

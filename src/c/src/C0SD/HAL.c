@@ -51,14 +51,6 @@ C0HALSetStatusRegister(SignaloidSoCStatus status)
 }
 
 void
-C0HALSetConfigRegisterUnlockBitstreamSection(bool state)
-{
-	kC0HALConfigRegister.bits.unlockBitstreamSection = state;
-
-	return;
-}
-
-void
 C0HALSetConfigRegisterSwLedEnable(bool state)
 {
 	kC0HALConfigRegister.bits.swLedEnable = state;

@@ -37,7 +37,7 @@ typedef union
 	struct
 	{
 		uint32_t    rstn                    : 1;
-		uint32_t    unlockBitstreamSection  : 1;
+		uint32_t                            : 1;	/* bit 1 unassigned */
 		uint32_t    swLedEnable             : 1;
 		uint32_t    swLed                   : 1;
 		uint32_t    redLed                  : 1;
@@ -46,10 +46,8 @@ typedef union
 		uint32_t    debugPin0               : 1;
 		uint32_t    debugPin1               : 1;
 		uint32_t    debugPin2               : 1;
-		uint32_t    reserved                : 22;
+		uint32_t                            : 22;	/* bits 31:10 unassigned */
 	} bits;
 } C0HALConfigRegister;
-
-#define kC0HALBootAddressRegister    (*(volatile uint32_t *) kSignaloidSoCConstantsBootAddressOffset)
 
 #include "C0mmioCommonHAL.h"

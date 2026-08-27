@@ -3,23 +3,24 @@
  */
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 
 
-uint32_t	getTopFlashOtpEntry(uint32_t offset);
+uint32_t	getTopFlashOtpEntry(size_t offset);
 
-void	setTopFlashOtpEntry(uint32_t offset, uint32_t *  value);
-
-
-uint32_t	getTopLramEntry(uint32_t offset);
-
-void	setTopLramEntry(uint32_t offset, uint32_t *  value);
+void	setTopFlashOtpEntry(size_t offset, uint32_t *  value);
 
 
+uint32_t	getTopLramEntry(size_t offset);
 
-uint32_t	getTopIoBuffEntry(uint32_t offset);
+void	setTopLramEntry(size_t offset, uint32_t *  value);
 
-void	setTopIoBuffEntry(uint32_t offset, uint32_t *  value);
+
+
+uint32_t	getTopIoBuffEntry(size_t offset);
+
+void	setTopIoBuffEntry(size_t offset, uint32_t *  value);
 

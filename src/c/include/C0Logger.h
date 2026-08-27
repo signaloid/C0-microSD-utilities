@@ -208,6 +208,8 @@ debug_printf(const char *format, ...);
 #define debug_printf tiny_printf
 #endif
 
+#define trace() tiny_printf("%s[%s:%d]\n", __FUNCTION__, __FILE__, __LINE__)
+
 #else
 
 /* No-op stubs. Keep the literal-fmt enforcement */
@@ -220,5 +222,7 @@ debug_printf(const char *format, ...);
 
  #define clear_logs_buffer()    ((void) 0)
  #define debug_printf(fmt, ...) ((void) sizeof("" fmt))
+
+ #define trace()                ((void) 0)
 
 #endif

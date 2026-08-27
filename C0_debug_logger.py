@@ -27,6 +27,7 @@ import argparse
 import datetime
 import io
 import signal
+import struct
 import sys
 import threading
 import time
@@ -70,6 +71,8 @@ class C0Logger:
         output_file: str | io.TextIOBase | None = sys.stdout,
         packet_size: int = DEFAULT_PACKET_SIZE,
         print_hex: bool = False,
+        print_uint: bool = False,
+        print_uint_stop_word: int | None = None,
         no_clear: bool = False,
         no_header: bool = False,
         no_header_styling: bool = False,
@@ -79,13 +82,14 @@ class C0Logger:
         self.output_file = output_file
         self.packet_size = packet_size
         self.print_hex = print_hex
+        self.print_uint = print_uint
+        self.print_uint_stop_word = print_uint_stop_word
         self.no_clear = no_clear
         self.no_header = no_header
         self.no_header_styling = no_header_styling
 
-        if (
-            self.output_file is None
-            or (isinstance(self.output_file, str) and self.output_file == "")
+        if self.output_file is None or (
+            isinstance(self.output_file, str) and self.output_file == ""
         ):
             self.output_file = sys.stdout
 
@@ -97,8 +101,8 @@ class C0Logger:
             (
                 C0microSDSignaloidSoCInterface,
                 C0microSDPlusInterface,
-                C0SDInterface
-            )
+                C0SDInterface,
+            ),
         ):
             self.device_path = self.compute_module.target_device
         else:
@@ -134,8 +138,27 @@ class C0Logger:
         :return: The formatted hex-dump string.
         :rtype: str
         """
-        uart_buffer: bytes = self.compute_module.read_debug_log_buffer(self.packet_size)
+        uart_buffer: bytes = self.compute_module.read_debug_log_buffer(
+            self.packet_size
+        )
         return self.hex_dump(uart_buffer)
+
+    def read_debug_log_buffer_uint(self, stop_word: int | None = None) -> str:
+        """Reads the debug log buffer and formats it as a classic hex-dump.
+
+        :return: The formatted hex-dump string.
+        :rtype: str
+        """
+        uart_buffer: bytes = self.compute_module.read_debug_log_buffer(
+            self.packet_size
+        )
+        text = ""
+        for i in range(0, self.packet_size, 4):
+            num = struct.unpack("<I", uart_buffer[i : i + 4])[0]
+            if num == stop_word:
+                break
+            text += f"{i // 4:>4}: 0x{num:08X}\n"
+        return text
 
     @staticmethod
     def hex_dump(data: bytes) -> str:
@@ -146,16 +169,16 @@ class C0Logger:
         :return: The formatted hex-dump string.
         :rtype: str
         """
-        text = ""
-        text += "╭────┬─────────────────────────────────────────────────╮"
-        text += "│    │  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f │"
-        text += "├────┼─────────────────────────────────────────────────┤"
+        text = "\n"
+        text += "╭────┬─────────────────────────────────────────────────╮\n"
+        text += "│    │  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f │\n"
+        text += "├────┼─────────────────────────────────────────────────┤\n"
         for i in range(0, len(data), 16):
-            chunk = data[i:i + 16]
+            chunk = data[i : i + 16]
             address_part = f"{(i // 16):02x}"
             data_part = f"{' '.join(f'{byte:02x}' for byte in chunk):<47}"
-            text += f"│ {address_part} │ {data_part} │"
-        text += "╰────┴─────────────────────────────────────────────────╯"
+            text += f"│ {address_part} │ {data_part} │\n"
+        text += "╰────┴─────────────────────────────────────────────────╯\n"
 
         return text
 
@@ -182,6 +205,10 @@ class C0Logger:
 
         if self.print_hex:
             text += self.read_debug_log_buffer_hex()
+        elif self.print_uint:
+            text += self.read_debug_log_buffer_uint(
+                stop_word=self.print_uint_stop_word
+            )
         else:
             text += self.read_debug_log_buffer_text()
 
@@ -189,7 +216,7 @@ class C0Logger:
 
     def get_log(self) -> None:
         """Reads the debug log buffer, formats it, and writes it to the target
-            output file.
+        output file.
         """
         text = self.get_formatted_log_text()
         self.write(text)
@@ -203,8 +230,7 @@ class C0Logger:
         self.keep_running = True
 
     def start(self):
-        """Starts a new thread to continuously read, format, and write the log.
-        """
+        """Starts a new thread to continuously read, format, and write the log."""
         self._thread = threading.Thread(target=self.start_blocking)
         self._thread.start()
 
@@ -295,6 +321,22 @@ def parse_arguments(explicit_args: list[str] | None = None):
     )
 
     parser.add_argument(
+        "--uint-dump",
+        dest="print_uint",
+        action="store_true",
+        help="Print the debug log as a list of 4-byte hex numbers.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--uint-dump-stop-word",
+        dest="stop_word",
+        type=lambda x: int(x, 0),
+        help="Print the debug log as a list of 4-byte hex numbers.",
+        default=False,
+    )
+
+    parser.add_argument(
         "--polling-rate",
         dest="polling_rate",
         type=float,
@@ -366,7 +408,7 @@ def main(explicit_args: list[str] | None = None):
             (
                 C0microSDPlusInterface,
                 C0SDInterface,
-            )
+            ),
         ):
             compute_module.reset_core()
 
@@ -376,10 +418,13 @@ def main(explicit_args: list[str] | None = None):
         output_file=args.output_file,
         packet_size=args.packet_size,
         print_hex=args.print_hex,
+        print_uint=args.print_uint,
+        print_uint_stop_word=args.stop_word,
         no_clear=args.no_clear,
         no_header=args.no_header,
         no_header_styling=args.no_header_styling,
     ) as logger:
+
         def sigint_handler(signal: int, frame: types.FrameType | None):
             logger.stop()
 
